@@ -1,3 +1,5 @@
 {
-  "IDX.agenticWorkspace": true
+  "IDX.agenticWorkspace": false,
+  "editor.fontSize": 16,
+  "terminal.integrated.fontSize": 16
 }
