@@ -155,7 +155,7 @@ export class Sandbox extends EventTarget {
         await callback(fullSandbox);
       } catch (ex) {
         console.error(
-          `INTERNAL_ERROR (core): Exception in application callback. See details -> ${ex.message}`
+          `INTERNAL_ERROR (honeycomb.core): Exception in host application. See details -> ${ex.message}`
         );
       }
       // timeout of 0 milliseconds ensures the callback fires on the next tick allowing any plugins defined to be registered
@@ -215,7 +215,7 @@ export class Sandbox extends EventTarget {
           // If the target service is not registered, surface a clear error.
           if (!Object.prototype.hasOwnProperty.call(my, prop)) {
             throw new Error(
-              `INTERNAL_ERROR (honeycomb.core): The service (${prop}) does NOT exist. Ensure it has been registered via Sandbox.modules.of() and provided in the Sandbox modules list. See docs (http://doc.honeycomb.io/getting-started#configuration-basics)`
+              `The service (${prop}) does NOT exist. Ensure it has been registered via Sandbox.modules.of() and provided in the Sandbox modules list. See docs (http://doc.honeycomb.io/getting-started#configuration-basics)`
             );
           }
 
@@ -294,21 +294,26 @@ export class Sandbox extends EventTarget {
         );
         return;
       }
-
+      console.log(eligibleServices)
       await Promise.all(eligibleServices.map(async (path) => {
         const serviceDefinition = await import(path);
         let serviceName; 
-        
-        if (!serviceDefinition.default.service) {
-          serviceName = serviceDefinition.default.name;
-          console.info(
-            `INFO (honeycomb.core): Service classes defined **WITHOUT** a static "service" property will be registered with the name of their constructor (${serviceName}). See docs (http://doc.honeycomb.io/getting-started#configuration-basics)`
-          );
-        } else {
-          serviceName = serviceDefinition.default.service;
-        }
 
-        Sandbox.modules.of(serviceName, serviceDefinition.default);
+        try {
+          if (!serviceDefinition.default.service) {
+            serviceName = serviceDefinition.default.name;
+            console.info(
+              `INFO (honeycomb.core): Service classes defined **WITHOUT** a static "service" property will be registered with the name of their constructor (${serviceName}). See docs (http://doc.honeycomb.io/getting-started#configuration-basics)`
+            );
+          } else {
+            serviceName = serviceDefinition.default.service;
+          }
+
+          Sandbox.modules.of(serviceName, serviceDefinition.default);
+
+        } catch(ex) {
+          throw new Error(`Honeycomb service classes **MUST** be exported using the 'default' keyword. See docs (http://doc.honeycomb.io/getting-started#services)`);
+        }
       }));    
     },
   };
