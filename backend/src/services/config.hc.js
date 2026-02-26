@@ -5,6 +5,8 @@ import { ApplicationService } from "../../system.js";
  *
  */
 export default class Config extends ApplicationService {
+  static service = "Config";
+
   #sandbox;
 
   /**

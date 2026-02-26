@@ -3,4 +3,7 @@ export const policies =  {
   HTTPService: {
     allowedAPIs: ['Config', 'RouteService']
   },
+  QueryService: {
+    allowedAPIs: ['Events']
+  }
 };

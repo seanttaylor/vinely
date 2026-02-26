@@ -35,7 +35,7 @@ export const HCSystemConfigurationProvider = {
       return Object.assign(imported.default, { __appRoot: rootDir });
     } catch (ex) {
       console.error(
-        `INTERNAL_ERROR (core.config): **EXCEPTION ENCOUNTERED** while loading Honeycomb config. See details -> ${ex.message}`
+        `INTERNAL_ERROR (honeycomb.core.config): **EXCEPTION ENCOUNTERED** while loading Honeycomb config. See details -> ${ex.message}`
       );
     }
   },
@@ -48,7 +48,7 @@ export const HCSystemConfigurationProvider = {
 
     if (!config || !config.__appRoot) {
         throw new Error(
-         `Invalid config. Honeycomb configuration **MUST** include a __appRoot property. This property **SHOULD** be added by the loadConfig method.`
+         `Invalid config. Honeycomb configuration **MUST** include a __appRoot property. This property **SHOULD** be added by the loadConfig method. See docs (http://doc.honeycomb.io/getting-started#configuration-basics)`
         );
     }
 
@@ -63,7 +63,7 @@ export const HCSystemConfigurationProvider = {
 
       if (!stat.isDirectory()) {
         console.error(
-          `INTERNAL_ERROR (core.config): Service directory (${serviceDir}) defined in .honeyrc.js does not exist or not a directory. See docs (http://doc.honeycomb.io/getting-started#configuration-basics)`
+          `INTERNAL_ERROR (honeycomb.core.config): Service directory (${serviceDir}) defined in .honeyrc.js does not exist or not a directory. See docs (http://doc.honeycomb.io/getting-started#configuration-basics)`
         );
       }
         
@@ -80,7 +80,7 @@ export const HCSystemConfigurationProvider = {
       return matches;
     } catch(ex) {
         console.error(
-          `INTERNAL_ERROR (core.config): **EXCEPTION ENCOUNTERED** during service discovery. Cannot build service map. See details -> ${ex.message} `
+          `INTERNAL_ERROR (honeycomb.core.config): **EXCEPTION ENCOUNTERED** during service discovery. Cannot build service map. See details -> ${ex.message} `
         );
       return;
     }

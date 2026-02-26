@@ -62,7 +62,7 @@ export class Sandbox extends EventTarget {
 
       if (!moduleDefinition) {
         console.error(
-          `INTERNAL_ERROR (core): Cannot create factory; module definition not found (${moduleName})`
+          `INTERNAL_ERROR (honeycomb.core): Cannot create factory; module definition not found (${moduleName}). See docs (http://doc.honeycomb.io/getting-started#modules)`
         );
         return;
       }
@@ -155,7 +155,7 @@ export class Sandbox extends EventTarget {
         await callback(fullSandbox);
       } catch (ex) {
         console.error(
-          `INTERNAL_ERROR (honeycomb.core): Exception in host application. See details -> ${ex.message}`
+          `INTERNAL_ERROR (honeycomb.core): **EXCEPTION ENCOUNTERED** in host application. See details -> ${ex.message}`
         );
       }
       // timeout of 0 milliseconds ensures the callback fires on the next tick allowing any plugins defined to be registered
@@ -288,13 +288,13 @@ export class Sandbox extends EventTarget {
       const HC_CONFIG = await HCSystemConfigurationProvider.loadConfig();
       const eligibleServices = await HCSystemConfigurationProvider.discoverServices(HC_CONFIG);
 
-      if (!eligibleServices.length) {
+      if (!eligibleServices?.length) {
         console.warn(
           `WARNING (honeycomb.core): Could not autoload services. No eligible services found. Ensure the correct service directory is defined in .honeyrc.js and that filenames match the patterns defined in the patterns field.  See docs (http://doc.honeycomb.io/getting-started#configuration-basics)`
         );
         return;
       }
-      console.log(eligibleServices)
+      
       await Promise.all(eligibleServices.map(async (path) => {
         const serviceDefinition = await import(path);
         let serviceName; 

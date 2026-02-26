@@ -19,11 +19,12 @@ import { ApplicationService } from "../../system.js";
  *
  */
 export default class HTTPService extends ApplicationService {
+  static bootstrap = true;
+  static service = "HTTPService";
+
   #sandbox;
   #logger;
-
-  static bootstrap = true;
-
+  
   /**
    *
    * @param {ISandbox} sandbox

@@ -5,7 +5,7 @@ import { ApplicationService } from "../../system.js";
  * the module system is working
  */
 export default class NOOPService extends ApplicationService {
-  //static service = "ScoobyDoo"
+  static service = "NOOPService";
 
   #logger;
   #sandbox;

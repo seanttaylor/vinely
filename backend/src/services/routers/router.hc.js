@@ -9,7 +9,10 @@ import { StatusRouter } from "./status.js";
  */
 
 export default class RouteService extends ApplicationService {
+  static service = "RouteService";
+  
   #sandbox;
+  
   Status;
 
   /**
