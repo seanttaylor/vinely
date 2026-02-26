@@ -2,8 +2,11 @@
     "name": "@vinely/backend",
     "version": "0.0.1",
     "description": "A search engine for wines of the world",
-    "scripts": {},
+    "scripts": {
+        "start": "node index.js"
+    },
     "dependencies": {
         "@honeycomb/core": "file:../packages/honeycomb/core"
-    }
+    },
+    "type": "module"
 }

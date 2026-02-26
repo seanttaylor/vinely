@@ -25,7 +25,7 @@ export class Sandbox extends EventTarget {
    * @param {Function} callback - app entrypoint, receives unrestricted sandbox
    * @param {Object} policies - maps moduleName -> { allowedAPIs: [string] }
    */
-  constructor(modules, callback, policies = {}) {
+  constructor(modules=[], callback, policies = {}) {
     super();
 
     // Save policies
@@ -51,6 +51,10 @@ export class Sandbox extends EventTarget {
     // We'll collect factory functions and a list of bootstrap modules.
     const factories = {};
     const bootstrapList = [];
+    
+    if (!Array.isArray(modules)) {
+      throw new Error('First positional argument to the Sandbox constructor (`modules`) **MUST** be an array. If the Sandbox host app does not require any modules, pass an empty array ([]). See docs (http://docs.honeycomb.io/getting-started#modules)');
+    }
 
     // Phase 1: Build factories (no instantiation yet) and capture bootstrap intent.
     modules.forEach((moduleName) => {
@@ -204,15 +208,14 @@ export class Sandbox extends EventTarget {
           // Deny unless explicitly allowed.
           if (!allowedSet.has(prop)) {
             throw new Error(
-              `POLICY_ERROR: Access to API "${prop}" denied for module "${moduleId}".` +
-                ` Ensure a policy entry exists for "${moduleId}" granting access to this API.`
+              `HC_POLICY_ERROR: Access to API "${prop}" denied for module (${moduleId}). Ensure a policy entry exists for (${moduleId}) granting access to this API. See docs (http://doc.honeycomb.io/advanced-configuration#access-control-policies)`
             );
           }
 
           // If the target service is not registered, surface a clear error.
           if (!Object.prototype.hasOwnProperty.call(my, prop)) {
             throw new Error(
-              `INTERNAL_ERROR (core): The service (${prop}) does NOT exist. Ensure it has been registered via Sandbox.modules.of() and provided in the Sandbox modules list.`
+              `INTERNAL_ERROR (honeycomb.core): The service (${prop}) does NOT exist. Ensure it has been registered via Sandbox.modules.of() and provided in the Sandbox modules list. See docs (http://doc.honeycomb.io/getting-started#configuration-basics)`
             );
           }
 
@@ -222,7 +225,7 @@ export class Sandbox extends EventTarget {
         // Prevent writes through the restricted view
         set: () => {
           throw new Error(
-            `POLICY_ERROR: Cannot assign properties on sandbox.my from module "${moduleId}".`
+            `HC_POLICY_ERROR: Cannot assign properties on sandbox.my from module "${moduleId}". See docs (http://doc.honeycomb.io/advanced-configuration#access-control-policies)`
           );
         },
         has: (_, prop) => {
@@ -286,7 +289,9 @@ export class Sandbox extends EventTarget {
       const eligibleServices = await HCSystemConfigurationProvider.discoverServices(HC_CONFIG);
 
       if (!eligibleServices.length) {
-        console.warn(`WARNING (core): Could not autoload services. No eligible services found. Ensure the correct service directory is defined in .honeyrc.js and that filenames match the patterns defined in the patterns field.`);
+        console.warn(
+          `WARNING (honeycomb.core): Could not autoload services. No eligible services found. Ensure the correct service directory is defined in .honeyrc.js and that filenames match the patterns defined in the patterns field.  See docs (http://doc.honeycomb.io/getting-started#configuration-basics)`
+        );
         return;
       }
 
@@ -296,7 +301,9 @@ export class Sandbox extends EventTarget {
         
         if (!serviceDefinition.default.service) {
           serviceName = serviceDefinition.default.name;
-          console.info(`INFO (core): Service classes defined **WITHOUT** a static "service" property will be registered with the name of their constructor (${serviceName})`);
+          console.info(
+            `INFO (honeycomb.core): Service classes defined **WITHOUT** a static "service" property will be registered with the name of their constructor (${serviceName}). See docs (http://doc.honeycomb.io/getting-started#configuration-basics)`
+          );
         } else {
           serviceName = serviceDefinition.default.service;
         }

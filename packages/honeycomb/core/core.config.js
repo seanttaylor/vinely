@@ -18,7 +18,7 @@ export const HCSystemConfigurationProvider = {
 
     if (!fs.existsSync(configPath)) {
       throw new Error(
-        `Cannot find .honeyrc.js configuration file in application root (${rootDir}).`
+        `Cannot find .honeyrc.js configuration file in application root (${rootDir}). See docs (http://doc.honeycomb.io/getting-started#configuration-basics)`
       );
     }
 
@@ -28,7 +28,7 @@ export const HCSystemConfigurationProvider = {
 
       if (!('default' in imported)) {
         throw new Error(
-          `.honeyrc.js configuration file must export a default object (e.g. "export default { ... }").`
+          `.honeyrc.js configuration file must export a default object (e.g. "export default { ... }"). See docs (http://doc.honeycomb.io/getting-started#configuration-basics)`
         );
       }
 
@@ -62,7 +62,9 @@ export const HCSystemConfigurationProvider = {
       const stat = fs.statSync(serviceDir);
 
       if (!stat.isDirectory()) {
-        console.error(`INTERNAL_ERROR (core.config): Service directory (${serviceDir}) defined in .honeyrc.js does not exist or not a directory.`)
+        console.error(
+          `INTERNAL_ERROR (core.config): Service directory (${serviceDir}) defined in .honeyrc.js does not exist or not a directory. See docs (http://doc.honeycomb.io/getting-started#configuration-basics)`
+        );
       }
         
       const patterns = serviceConfig.patterns ?? ['**/*.service.js', '**/*.svc.js'];
