@@ -1,3 +1,4 @@
+import { IProblemDetails } from "../interfaces.js";
 import { ApplicationService } from "../../system.js"
 import { SystemEvent, Events } from "../types/system-event.js";
 import { Result } from "../types/result.js";
@@ -31,7 +32,7 @@ export default class QueryService extends ApplicationService {
   /**
    *
    * @param {String} queryString - the raw search query from the client
-   * @returns {Result<Object>}
+   * @returns {Result<Object | IProblemDetails>}
    */
   search(queryString) {
     try {
@@ -45,12 +46,22 @@ export default class QueryService extends ApplicationService {
         message: ex.message,
         stack: ex.stack,
       });
-      const logMessage = `INTERNAL_ERROR (${QueryService.service}): **EXCEPTION ENCOUNTERED** while executing a search query. This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionEvent.detail.header.id}). See details -> ${ex.message}`;
-      const displayMessage = ``;
+      const exceptionId = exceptionEvent.detail.header.id;
+      const logMessage = `INTERNAL_ERROR (${QueryService.service}): **EXCEPTION ENCOUNTERED** while executing a search query. This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionId}). See details -> ${ex.message}`;
+      const displayMessage = "There was an error while executing the search query.";
+
+      /**
+       * @type {IProblemDetails}
+       */
+      const problem = {
+        title: "INTERNAL ERROR",
+        detail: displayMessage,
+        instance: `runtime_exceptions/query_serice/${exceptionId}`,
+      };
 
       console.error(logMessage);
       this.#sandbox.my.Events.dispatchEvent(exceptionEvent);
-      return Result.error(displayMessage);
+      return Result.error(problem);
     }
   }
 }

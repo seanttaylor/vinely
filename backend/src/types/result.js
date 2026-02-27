@@ -1,23 +1,31 @@
+/**
+ * @template TValue
+ * @template TError
+ */
 export class Result {
   /**
    * Wrapper for a value returned from a function
-   * @param {Any} value
+   * @template T
+   * @param {T} value
+   * @returns {Result<T, null>}
    */
   static ok(value) {
     return new Result(true, value, null);
   }
 
   /**
-   * @param {String|Object} error
+   * @template E
+   * @param {E} error
+   * @returns {Result<null, E>}
    */
   static error(error) {
     return new Result(false, null, error);
   }
 
   /**
-   * @param {Boolean} ok
-   * @param {Any} value
-   * @param {String|Object} error
+   * @param {boolean} ok
+   * @param {TValue|null} value
+   * @param {TError|null} error
    */
   constructor(ok, value, error) {
     this.ok = ok;
@@ -67,7 +75,7 @@ export class Result {
   }
 
   /**
-   * @returns {Object}
+   * @returns {TValue|null}
    */
   getValue() {
     if (this.isError()) {
@@ -78,7 +86,7 @@ export class Result {
   }
 
   /**
-   * @returns {Object}
+   * @returns {TError|null}
    */
   getError() {
     if (this.isOk()) {

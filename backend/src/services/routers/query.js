@@ -1,4 +1,5 @@
 import express from "express";
+import { IProblemDetails } from "../../interfaces.js";
 import { Result } from "../../types/result.js";
 
 /**
@@ -20,13 +21,17 @@ export class QueryRouter {
      */
     router.get("/search", async (req, res, next) => {
       try {
+
         /**
-         * @type {Result}
+         * @type {Result<Object | IProblemDetails>}
          */
         const queryResult = await QueryService.search();
 
         if (!queryResult.isOk()) {
-
+          res.set("X-Total-Count", 1);
+          res.status(500);
+          res.json([queryResult.error]);
+          return; 
         }
 
         res.set("X-Total-Count", 42);

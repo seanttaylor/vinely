@@ -62,3 +62,35 @@ export const ISandbox = Object.freeze({
  * @description - API for all data access regardless of implementation
  */
 export const IDataAccessLayer = Object.freeze({});
+
+/**
+ * Represents an RFC 7807 Problem Details object.
+ *
+ * Used to convey machine-readable error details in HTTP APIs.
+ * @see https://datatracker.ietf.org/doc/html/rfc7807
+ *
+ * @typedef {Object} ProblemDetails
+ *
+ * @property {string} [type="about:blank"]
+ * A URI reference that identifies the problem type.
+ * When dereferenced, it should provide human-readable documentation.
+ *
+ * @property {string} title
+ * A short, human-readable summary of the problem type.
+ * Should remain stable across occurrences (except localization).
+ *
+ * @property {number} [status]
+ * The HTTP status code for this occurrence of the problem.
+ *
+ * @property {string} [detail]
+ * A human-readable explanation specific to this occurrence.
+ *
+ * @property {string} [instance]
+ * A URI reference identifying the specific occurrence of the problem.
+ */
+
+/**
+ * @type {ProblemDetails}
+ * @description - interface for documenting error details in HTTP APIs
+ */
+export const IProblemDetails = Object.freeze({});
