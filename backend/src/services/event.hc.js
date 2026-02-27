@@ -2,9 +2,7 @@
 
 /* eslint-disable no-unused-vars */
 import { ISandbox, IEvent } from "../interfaces.js";
-import { SystemEvent, Events } from "../types/system-event.js";
 /* eslint-enable no-unused-vars */
-
 
 /**
  * @typedef {object} DependentServices
@@ -41,10 +39,6 @@ export default class Xevents extends EventTarget {
       // dispatch event to registered subscribers
       super.dispatchEvent(event);
 
-      // dispatch composite event to the event log
-      // super.dispatchEvent(
-      //   new SystemEvent(Events.EVENT_DISPATCHED, event.detail)
-      // );
     } catch (ex) {
       this.#logger.error(
         `INTERNAL_ERROR (Events): **EXCEPTION ENCOUNTERED** during event dispatch. See details -> ${ex.message}`

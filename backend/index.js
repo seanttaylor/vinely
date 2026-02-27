@@ -11,12 +11,12 @@ import { policies } from "./policies.js";
 
     const app = new Sandbox(
       [
-        "HTTPService",
         "Config",
-        "RouteService",
-        "NOOPService",
         "Events",
+        "HTTPService",
+        "NOOPService",
         "QueryService",
+        "RouteService",
       ],
       async (hc) => {
         hc.my.Events.addEventListener(
@@ -47,7 +47,7 @@ import { policies } from "./policies.js";
 					console.log(event);
 				}
         console.log("vinely v0.0.1");
-        console.log(hc.my.QueryService.search("test"));
+        //console.log(hc.my.QueryService.search("test"));
       },
       policies
     );

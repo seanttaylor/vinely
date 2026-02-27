@@ -1,5 +1,6 @@
 import { ApplicationService } from "../../system.js"
 import { SystemEvent, Events } from "../types/system-event.js";
+import { Result } from "../types/result.js";
 
 /**
  * Manages the vinely search pipeline end-to-end
@@ -35,22 +36,21 @@ export default class QueryService extends ApplicationService {
   search(queryString) {
     try {
       throw new Error("Some random exception");
-      return {
-        result: "Some random result"
-      };
+      return Result.ok({
+        queryResult: "Some random result"
+      });
     } catch (ex) {
       const exceptionEvent = new SystemEvent(Events.RUNTIME_EXCEPTION, {
         service: QueryService.service,
         message: ex.message,
         stack: ex.stack,
       });
+      const logMessage = `INTERNAL_ERROR (${QueryService.service}): **EXCEPTION ENCOUNTERED** while executing a search query. This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionEvent.detail.header.id}). See details -> ${ex.message}`;
+      const displayMessage = ``;
 
-      console.error(
-        `INTERNAL_ERROR (${QueryService.service}): **EXCEPTION ENCOUNTERED** while executing a search query. This exception instance will be pushed to the 'runtime_exceptions' table in the database with id (${exceptionEvent.detail.header.id}). See details -> ${ex.message}`
-      );
-    
+      console.error(logMessage);
       this.#sandbox.my.Events.dispatchEvent(exceptionEvent);
-      return {};
+      return Result.error(displayMessage);
     }
   }
 }

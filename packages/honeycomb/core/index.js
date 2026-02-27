@@ -115,7 +115,7 @@ export class Sandbox extends EventTarget {
               my[internalKey] = factory();
             } catch (ex) {
               console.error(
-                `INTERNAL_ERROR (core): Could not create module (${moduleName}); ensure this module is registered via Sandbox.modules.of() and that it is INITIALIZED. See details -> ${ex.message}`
+                `INTERNAL_ERROR (honeycomb.core): Could not create module (${moduleName}); ensure this module is registered via Sandbox.modules.of() or Sandox.modules.autoLoad, and that it is INITIALIZED. See details -> ${ex.message}`
               );
             }
           }
@@ -208,7 +208,7 @@ export class Sandbox extends EventTarget {
           // Deny unless explicitly allowed.
           if (!allowedSet.has(prop)) {
             throw new Error(
-              `HC_POLICY_ERROR: Access to API "${prop}" denied for module (${moduleId}). Ensure a policy entry exists for (${moduleId}) granting access to this API. See docs (http://doc.honeycomb.io/advanced-configuration#access-control-policies)`
+              `HC_POLICY_ERROR: Access to API "${prop}" DENIED for module (${moduleId}). Ensure a policy entry exists for (${moduleId}) granting access to this API. See docs (http://doc.honeycomb.io/advanced-configuration#access-control-policies)`
             );
           }
 
@@ -312,7 +312,11 @@ export class Sandbox extends EventTarget {
           Sandbox.modules.of(serviceName, serviceDefinition.default);
 
         } catch(ex) {
-          throw new Error(`Honeycomb service classes **MUST** be exported using the 'default' keyword. See docs (http://doc.honeycomb.io/getting-started#services)`);
+          const pathParts = path.split('/');
+          const problemFilePath = `.../${pathParts[pathParts.length-3]}/${
+            pathParts[pathParts.length-2]
+          }/${pathParts[pathParts.length-1]}`;
+          throw new Error(`Honeycomb service classes **MUST** be exported using the 'default' keyword. Fix file at (${problemFilePath}). See docs (http://doc.honeycomb.io/getting-started#services).`);
         }
       }));    
     },
