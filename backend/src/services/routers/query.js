@@ -12,14 +12,16 @@ const HTTPResponse = {
   with(res) {
     return {
       /**
-       * @param {Object} data
+       * @param {Object[]} data
+       * @returns {void}
        */
       success(data) {
-        res.set("X-Total-Count", 42);
-        res.json([]);
+        res.set("X-Total-Count", data.length);
+        res.json(data);
       },
       /**
        * @param {String|Object} error
+       * @return {void}
        */
       error(error) {
         // res.set("X-Error-Instance-Id", "");

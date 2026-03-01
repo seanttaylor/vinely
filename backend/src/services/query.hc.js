@@ -23,7 +23,7 @@ export default class QueryService extends ApplicationService {
 
     try {
     } catch (ex) {
-      console.error(
+      this.#logger.log(
         `INTERNAL_ERROR (${QueryService.service}): **EXCEPTION ENCOUNTERED** while starting the service. See details -> ${ex.message}`
       );
     }
@@ -36,7 +36,7 @@ export default class QueryService extends ApplicationService {
    */
   search(queryString) {
     try {
-      //throw new Error("Some random exception");
+      throw new Error("Some random exception");
       return Result.ok({
         queryResult: "Some random result",
       });
