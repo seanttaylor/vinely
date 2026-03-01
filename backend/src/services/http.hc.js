@@ -110,7 +110,7 @@ export default class HTTPService extends ApplicationService {
         console.error(
           `INTERNAL_ERROR (HTTPService): **EXCEPTION ENCOUNTERED** on route (${req.path}). See details -> ${error}`
         );
-        res.status(status).send([]);
+        res.status(status).send([err]);
       });
 
       // Skips launching backend in unit test mode

@@ -10,27 +10,30 @@ export class Result {
    * @returns {Result<T, null>}
    */
   static ok(value) {
-    return new Result(true, value, null);
+    return new Result(true, value, null, "success");
   }
 
   /**
    * @template E
    * @param {E} error
+   * @param {string} type
    * @returns {Result<null, E>}
    */
-  static error(error) {
-    return new Result(false, null, error);
+  static error(error, type = "err") {
+    return new Result(false, null, error, type);
   }
 
   /**
    * @param {boolean} ok
    * @param {TValue|null} value
    * @param {TError|null} error
+   * @param {string} type
    */
-  constructor(ok, value, error) {
+  constructor(ok, value, error, type) {
     this.ok = ok;
     this.value = value;
     this.error = error;
+    this.type = type;
   }
 
   /**
@@ -72,6 +75,42 @@ export class Result {
     } else {
       return this;
     }
+  }
+
+  /**
+   * Pattern matches against the `Result`.
+   *
+   * If the Result is successful, invokes the required `ok` handler with the value.
+   * If the Result is an error, attempts to invoke a handler matching the error `type`.
+   * If no specific error handler is found, falls back to `err` if provided.
+   * Throws if no appropriate handler is supplied.
+   *
+   * @template R
+   * @param {{
+   *   ok: (value: any) => R,
+   *   err?: (error: any) => R,
+   *   [errorType: string]: ((error: any) => R) | undefined
+   * }} handlers
+   * @returns {R}
+   * @throws {Error} If required handlers are missing
+   */
+  match(handlers = {}) {
+    if (this.ok) {
+      if (typeof handlers.ok === "function") {
+        return handlers.ok(this.value);
+      }
+      throw new Error('Result.match requires an "ok" handler');
+    }
+
+    const handler = handlers[this.type] || handlers.err;
+
+    if (typeof handler === "function") {
+      return handler(this.error);
+    }
+
+    throw new Error(
+      `Result.match: no handler found for error type "${this.type}"`
+    );
   }
 
   /**

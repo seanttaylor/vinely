@@ -45,6 +45,10 @@ import { policies } from "./policies.js";
 
         async function onTelemetryPush(event) {
 					console.log(event);
+          // const client = hc.my.Database.getClient();
+          // const { data, error } = await client
+          //   .from("telemetry.runtime_exceptions")
+          //   .insert(event);
 				}
         console.log("vinely v0.0.1");
         //console.log(hc.my.QueryService.search("test"));
