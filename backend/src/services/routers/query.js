@@ -41,16 +41,20 @@ export class QueryRouter {
    * @param {Object} options
    * @param {Object} options.middlewareProvider - object containing middleware methods
    * @param {Object} options.Events - interface for dispatching system events
+   * @param {Object} options.MiddlewareProvider common interface for service middleware
    * @param {Object} options.QueryService - interface for executing search queries
    */
-  constructor({ Events, QueryService }) {
+  constructor({ Events, MiddlewareProvider, QueryService }) {
     const router = express.Router();
 
     /**
-     * Returns the application status
+     * @param {Object} req
+     * @param {Object} res
+     * @param {Function} next
      */
-    router.get("/search", async (req, res, next) => {
+    router.get("/search", MiddlewareProvider.QueryService.validateSearchQueryParams, async (req, res, next) => {
       try {
+
         /**
          * @type {Result<Object | Problem>}
          */

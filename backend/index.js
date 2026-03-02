@@ -15,6 +15,7 @@ import { policies } from "./policies.js";
         "Database",
         "Events",
         "HTTPService",
+        "MiddlewareProvider",
         "NOOPService",
         "QueryService",
         "RouteService",

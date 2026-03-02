@@ -9,6 +9,7 @@ import { Problem } from "../types/problem.js";
 export default class QueryService extends ApplicationService {
   static service = "QueryService";
 
+  #currentStrategy;
   #logger;
   #sandbox;
 
@@ -27,6 +28,14 @@ export default class QueryService extends ApplicationService {
         `INTERNAL_ERROR (${QueryService.service}): **EXCEPTION ENCOUNTERED** while starting the service. See details -> ${ex.message}`
       );
     }
+  }
+
+  /**
+   * Sets the search strategy to be used by the service (e.g. product_discovery or product_lookup)
+   * @param {object} strategy 
+   */
+  setStrategy(strategy) {
+    this.#currentStrategy = strategy;
   }
 
   /**
@@ -62,4 +71,5 @@ export default class QueryService extends ApplicationService {
       );
     }
   }
+
 }

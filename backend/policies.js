@@ -11,6 +11,6 @@ export const policies =  {
     allowedAPIs: ["Events"]
   },
   RouteService: {
-    allowedAPIs: ["Events", "QueryService"]
+    allowedAPIs: ["Events", "MiddlewareProvider", "QueryService"]
   }
 };

@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Schema defintion for validating search queries surfaced on ExpressJS's `req.query` object",
+  "required": ["q", "qtype"],
+  "properties": {
+    "q": {
+      "type": "string",
+      "minLength": 1
+    },
+    "qtype": {
+      "type": "string",
+      "enum": ["product_lookup", "product_discovery"]
+    }
+  }
+}
