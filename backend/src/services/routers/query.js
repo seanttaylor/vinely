@@ -2,6 +2,8 @@ import express from "express";
 import { Result } from "../../types/result.js";
 import { Problem } from "../../types/problem.js";
 import { SystemEvent, Events } from "../../types/system-event.js";
+import { ProductLookupStrategy, ProductDiscoveryStrategy } from "../query/strategy.js";
+import { str } from "ajv";
 
 const HTTPResponse = {
   /**
@@ -34,6 +36,14 @@ const HTTPResponse = {
 };
 
 /**
+ * Map of search strategies
+ */
+const SearchStrategy = {
+  product_lookup: new ProductLookupStrategy(),
+  product_discovery: new ProductDiscoveryStrategy(),
+};
+
+/**
  * Router exposing endpoints for executing search queries
  */
 export class QueryRouter {
@@ -54,11 +64,13 @@ export class QueryRouter {
      */
     router.get("/search", MiddlewareProvider.QueryService.validateSearchQueryParams, async (req, res, next) => {
       try {
-
         /**
          * @type {Result<Object | Problem>}
          */
-        const queryResult = await QueryService.search();
+        const strategyName = req.query.qtype;
+        QueryService.setStrategy(SearchStrategy[strategyName]); 
+
+        const queryResult = await QueryService.search(req.query.q);
         const { success: onQuerySuccess, error: onQueryError } = HTTPResponse.with(res); 
         
         queryResult.match({ 
