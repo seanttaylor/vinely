@@ -94,28 +94,6 @@ export default class QueryService extends ApplicationService {
   }
 
   /**
-   * Pulls the keywords and search phrases from the database for use in query processing
-   * @returns {Promise<Vocabulary>}
-   */
-  async #loadVocabulary() {
-    const { data: queryTerms, error: queryTermsLookupError } =
-      await this.#dbClient.schema("vocabulary").from("terms").select();
-    const { data: queryPhrases, error: queryPhrasesLookupError } =
-      await this.#dbClient.schema("vocabulary").from("phrases").select();
-
-    if (queryTermsLookupError || queryPhrasesLookupError) {
-      throw new Error(
-        `${
-          queryTermsLookupError
-            ? queryTermsLookupError.message
-            : queryPhrasesLookupError.message
-        }`
-      );
-    }
-    return { queryTerms, queryPhrases };
-  }
-
-  /**
    * Creates a local map of search keywords and phrases for realtime translation to SQL queries
    * @param {Vocabulary} vocabulary
    * @returns {object}
@@ -140,17 +118,49 @@ export default class QueryService extends ApplicationService {
     return { keywords, phrases };
   }
 
+  /**
+   * Pulls the keywords and search phrases from the database for use in query processing
+   * @returns {Promise<Vocabulary>}
+   */
+  async #loadVocabulary() {
+    const { data: queryTerms, error: queryTermsLookupError } =
+      await this.#dbClient.schema("vocabulary").from("terms").select();
+    const { data: queryPhrases, error: queryPhrasesLookupError } =
+      await this.#dbClient.schema("vocabulary").from("phrases").select();
+
+    if (queryTermsLookupError || queryPhrasesLookupError) {
+      throw new Error(
+        `${
+          queryTermsLookupError
+            ? queryTermsLookupError.message
+            : queryPhrasesLookupError.message
+        }`
+      );
+    }
+    return { queryTerms, queryPhrases };
+  }
+
+  /**
+   * Allows instances of `SearchStrategy` to execute queries against the database (or
+   * any other datastore) without knowledge of or need for a direct reference to the database)
+   * @param {string} sqlString
+   * @returns {Result} 
+   */
+  async #queryRunner(sqlString) {
+    //return this.#dbClient.sql(sqlString);
+  }
+
   get ready() {
     return this.#isReady;
   }
 
   /**
    * Sets the search strategy to be used by the service (e.g. product_discovery or product_lookup)
-   * @param {SearhStrategy} strategy
+   * @param {SearchStrategy} strategy
    */
   setStrategy(strategy) {
     this.#currentStrategy = strategy;
-    //this.#currentStrategy.useVocabulary(this.#vocabularyMap);
+    this.#currentStrategy.setVocabulary(this.#vocabularyMap);
   }
 
   /**
@@ -169,7 +179,7 @@ export default class QueryService extends ApplicationService {
           })
         );
       }
-      return this.#currentStrategy.search(queryString);
+      return this.#currentStrategy.search(queryString, this.#queryRunner);
     } catch (ex) {
       const exceptionEvent = new SystemEvent(Events.RUNTIME_EXCEPTION, {
         service: QueryService.service,

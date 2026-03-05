@@ -4,12 +4,6 @@ import { Result } from "../../types/result.js";
 const MAX_PHRASE_LENGTH = 3;
 
 /**
- * @typedef {Object} QueryTokenizationResult
- * @property {any[]} phraseFilter  Matched phrase payloads
- * @property {any[]} keywordFilter Matched keyword payloads
- */
-
-/**
  * Helper methods for pre-processing search queries
  */
 const queryTools = {
@@ -21,31 +15,32 @@ const queryTools = {
     return qs.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ""); // remove punctuation
   },
   /**
-   * Extracts known phrases and keywords from a tokenized query
-   * using a greedy longest-match strategy.
+   * Maps supported phrases and keywords from a tokenized query
+   * to associated SQL fragments
    *
    * @description Rules:
    * - Attempts longest phrase match first.
    * - If a phrase matches, its tokens are consumed.
    * - If no phrase matches, checks for a keyword match.
-   * - Tokens not present in phraseMap or keywordMap are ignored.
-   *
-   * @note This function is intended for controlled-vocabulary search systems.
+   * - Tokens not present in `phraseMap` or `keywordMap` are ignored.
    *
    * @param {string[]} tokens  normalized query tokens
    * @param {PhraseMap} phraseMap phrase lookup table grouped by phrase length
    * @param {KeywordMap} keywordMap single-token keyword lookup table
    * @param {number} maxPhraseLength  maximum phrase length to attempt
    *
-   * @returns {ExtractResult}
+   * @returns {QueryTokenizationResult}
    */
-  extractPhrases(
+  extractKeywords(
     tokens,
-    phraseMap = this.vocabulary.phrases,
-    keywordMap = this.vocabulary.keywords,
+    phraseMap,
+    keywordMap,
     maxPhraseLength = MAX_PHRASE_LENGTH
   ) {
-    /** @type {QueryTokenizationResult} */
+    /**
+     * @property {string[]} phraseFilter SQL fragments associated with matched phrases
+     * @property {string[]} keywordFilter SQL fragments associated with matched keywords
+     */
     const result = {
       phraseFilter: [],
       keywordFilter: [],
@@ -83,7 +78,7 @@ const queryTools = {
       }
     }
 
-    return result;
+    return [...result.keywordFilter, ...result.phraseFilter];
   },
   /**
    * @param {string} qs
@@ -99,20 +94,39 @@ const queryTools = {
       })
       .filter(Boolean);
   },
+  /**
+   * @param {string[]} sqlFilters - list of SQL fragments that mapped to known keywords and phrases in the search vocabulary
+   * @returns {string}
+   */
+  buildSQLQuery(sqlFilters) {
+    return sqlFilters.length
+      ? `SELECT * FROM wines WHERE ${sqlFilters.join(" AND ")}`
+      : "";
+  },
 };
 
 /**
  * Abstract class representing a search strategy
  */
 class SearchStrategy {
+  #vocabulary;
+
   constructor() {}
 
   search() {
     throw new Error("Missing implementation.");
   }
 
-  useVocabulary(vocabulary) {
-    this.vocabulary = vocabulary;
+  /**
+   * Sets the vocabulary used in search queries
+   * @param {object} vocabulary
+   */
+  setVocabulary(vocabulary) {
+    this.#vocabulary = vocabulary;
+  }
+
+  get vocabulary() {
+    return this.#vocabulary;
   }
 }
 
@@ -142,19 +156,26 @@ export class ProductDiscoveryStrategy extends SearchStrategy {
   /**
    *
    * @param {String} queryString - the raw search query from the client
-   * @returns {Result<Object | Problem>}
+   * @param {Function} queryRunner - an async function that returns results from a datastore
+   * @returns {Result}
    */
-  search(queryString) {
-    const queryFilters = Result.ok(queryString)
+  async search(queryString, queryRunner) {
+    const sqlResult = Result.ok(queryString)
       .map(queryTools.normalize)
-      .map(queryTools.tokenize);
-      //.map(queryTools.extractPhrases)
+      .map(queryTools.tokenize)
+      .map((tokenizedQueryString) =>
+        queryTools.extractKeywords(
+          tokenizedQueryString,
+          this.vocabulary.phrases,
+          this.vocabulary.keywords
+        )
+      )
+      .map(queryTools.buildSQLQuery);
 
-    console.log(queryFilters);
+    if (sqlResult.isError()) {
+      return sqlResult;
+    }
 
-    throw new Error("Some random error");
-    return Result.ok({
-      queryResult: "Some random result",
-    });
+    return queryRunner(sqlResult.value);
   }
 }

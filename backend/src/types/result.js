@@ -69,12 +69,34 @@ export class Result {
             ? transformed
             : Result.ok(transformed);
         }
-      } catch (error) {
-        return Result.error(error.message);
+      } catch (ex) {
+        return Result.error(ex.message);
       }
     } else {
       return this;
     }
+  }
+
+  /**
+   * Executes a side-effect function with the contained value if the Result is ok,
+   * without modifying the Result or its value.
+   * If the Result is an error, the side-effect is skipped and the Result
+   * is returned unchanged.
+   * @param {(value: TValue) => void} fn
+   * Function invoked with the current value when the Result is ok.
+   *
+   * @returns {Result<TValue, TError>}
+   * Returns the same Result instance to allow continued chaining.
+   */
+  tap(fn) {
+    if (this.isOk()) {
+      try {
+        fn(this.value);
+      } catch (ex) {
+        console.error(`Result.tap encountered an exception. See details -> ${ex.message}`);
+      }
+    }
+    return this;
   }
 
   /**

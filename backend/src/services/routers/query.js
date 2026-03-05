@@ -29,7 +29,7 @@ const HTTPResponse = {
         // res.set("X-Error-Instance-Id", "");
         res.set("X-Total-Count", 1);
         res.status(500);
-        res.json([error]);
+        res.json([Problem.of({ title: "INTERNAL ERROR", detail: error.message })]);
       },
     };
   },
