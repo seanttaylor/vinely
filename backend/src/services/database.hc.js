@@ -1,14 +1,15 @@
+import { createClient } from "@supabase/supabase-js";
 import { ISandbox } from "../interfaces.js";
 import { ApplicationService } from "../../system.js";
-import { createClient } from "@supabase/supabase-js";
+
 
 /**
  *
  */
 export default class Database extends ApplicationService {
-  #sandbox;
-  #client;
+  #dbClient;
   #logger;
+  #sandbox;
 
   /**
    * @param {ISandbox} sandbox
@@ -18,10 +19,10 @@ export default class Database extends ApplicationService {
     try {
       this.#sandbox = sandbox;
       this.#logger = sandbox.core.logger.getLoggerInstance();
-      
+
       const { SUPABASE_URL, SUPABASE_KEY } = sandbox.my.Config.keys;
-      this.#client = createClient(SUPABASE_URL, SUPABASE_KEY);
-      
+
+      this.#dbClient = createClient(SUPABASE_URL, SUPABASE_KEY);
     } catch (ex) {
       this.#logger.log(
         `INTERNAL_ERROR (Database): **EXCEPTION ENCOUNTERED** during initialization. See details -> ${ex.message}`
@@ -34,6 +35,6 @@ export default class Database extends ApplicationService {
    * @returns {Object}
    */
   getClient() {
-    return this.#client;
+    return this.#dbClient;
   }
 }

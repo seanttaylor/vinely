@@ -14,6 +14,7 @@ import { randomUUID } from "crypto";
 /* eslint-enable no-unused-vars */
 
 import { ApplicationService } from "../../system.js";
+import { Problem } from "../types/problem.js";
 
 /**
  *
@@ -110,7 +111,11 @@ export default class HTTPService extends ApplicationService {
         console.error(
           `INTERNAL_ERROR (HTTPService): **EXCEPTION ENCOUNTERED** on route (${req.path}). See details -> ${error}`
         );
-        res.status(status).send([err]);
+
+        res.status(status).send([Problem.of({
+          title: `There was an error processing the request. See detail.`,
+          detail: `${err.message}`
+        })]);
       });
 
       // Skips launching backend in unit test mode

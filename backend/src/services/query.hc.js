@@ -69,9 +69,9 @@ export default class QueryService extends ApplicationService {
     super();
 
     try {
+      this.#dbClient = sandbox.my.Database.getClient();
       this.#sandbox = sandbox;
       this.#logger = sandbox.core.logger.getLoggerInstance();
-      this.#dbClient = sandbox.my.Database.getClient();
 
       this.#loadVocabulary()
         .then(this.#buildLocalVocabularyMap)
@@ -147,7 +147,14 @@ export default class QueryService extends ApplicationService {
    * @returns {Result} 
    */
   async #queryRunner(sqlString) {
-    //return this.#dbClient.sql(sqlString);
+    // TODO: Create SQL procedure in Supabase to run query against wines table
+
+    const { data, error } = await this.#dbClient.rpc("search_wines", { querySql: sqlString });
+    if (error) {
+      this.#logger.error(`INTERNAL ERROR (${QueryService.service}): The database returned an error running the search query. See details -> ${error.message}`);
+      return Result.error('Cannot complete the search query due to an error.');
+    }
+    return Result.ok(data);
   }
 
   get ready() {

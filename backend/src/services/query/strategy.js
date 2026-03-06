@@ -1,4 +1,3 @@
-import { token } from "morgan";
 import { Result } from "../../types/result.js";
 
 const MAX_PHRASE_LENGTH = 3;

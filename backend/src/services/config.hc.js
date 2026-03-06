@@ -29,8 +29,8 @@ export default class Config extends ApplicationService {
    */
   get keys() {
     return {
-      SUPABASE_URL: process.env.SUPABASE_URL,
       SUPABASE_KEY: process.env.SUPABASE_KEY,
+      SUPABASE_URL: process.env.SUPABASE_URL,
     };
   }
 
