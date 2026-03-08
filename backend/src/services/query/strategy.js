@@ -175,6 +175,6 @@ export class ProductDiscoveryStrategy extends SearchStrategy {
       return sqlResult;
     }
 
-    return queryRunner(sqlResult.value);
+    return queryRunner(sqlResult.value, this.constructor.name);
   }
 }

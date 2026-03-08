@@ -49,6 +49,16 @@ const COERCED_TYPES = {
 };
 
 /**
+ * Enum of SQL functions **defined on the database** mapped to supported search strategy names
+ * @readonly
+ * @enum {string}
+ */
+const SQL_FUNC = Object.freeze({
+  ProductDiscoveryStrategy: "search_wines_product_discovery",
+  ProductLookUpStrategy: "search_wines_product_lookup",
+});
+
+/**
  * Manages the vinely search pipeline end-to-end
  */
 export default class QueryService extends ApplicationService {
@@ -144,17 +154,48 @@ export default class QueryService extends ApplicationService {
    * Allows instances of `SearchStrategy` to execute queries against the database (or
    * any other datastore) without knowledge of or need for a direct reference to the database)
    * @param {string} sqlString
-   * @returns {Result} 
+   * @param {string} strategyName the name of the current search strategy
+   * @returns {Result}
    */
-  async #queryRunner(sqlString) {
-    // TODO: Create SQL procedure in Supabase to run query against wines table
+  async #queryRunner(sqlString, strategyName) {
+    try {
+      const { data, error } = await this.#dbClient.rpc(SQL_FUNC[strategyName], {
+        query_sql: sqlString,
+      });
 
-    const { data, error } = await this.#dbClient.rpc("search_wines", { querySql: sqlString });
-    if (error) {
-      this.#logger.error(`INTERNAL ERROR (${QueryService.service}): The database returned an error running the search query. See details -> ${error.message}`);
-      return Result.error('Cannot complete the search query due to an error.');
+      if (error) {
+        this.#logger.error(
+          `INTERNAL ERROR (${QueryService.service}): The database returned an error while running the search query. See details -> ${error.message}`
+        );
+        return Result.error(
+          Problem.of({
+            title: "INTERNAL ERROR",
+            detail: "There was an error executing the search query.",
+          })
+        );
+      }
+
+      return Result.ok(!data ? [] : data);
+    } catch (ex) {
+      // TODO: Generalize exception capture and telemetry push to keep things DRY
+      const exceptionEvent = new SystemEvent(Events.RUNTIME_EXCEPTION, {
+        service: `${QueryService.service}`,
+        message: ex.message,
+        stack: ex.stack,
+      });
+      const logMessage = `INTERNAL ERROR (${QueryService.service}): **EXCEPTION ENCOUNTERED** while running the SQL function associated with strategy (${strategyName}). This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionId}). See details -> ${ex.message}`;
+
+      this.#logger.error(logMessage);
+      this.#sandbox.my.Events.dispatchEvent(exceptionEvent);
+
+      return Result.error(
+        Problem.of({
+          title: "INTERNAL ERROR",
+          detail: "There was an error executing the search query.",
+          instance: `runtime_exceptions/query_serice/${exceptionId}`,
+        })
+      );
     }
-    return Result.ok(data);
   }
 
   get ready() {
@@ -186,8 +227,13 @@ export default class QueryService extends ApplicationService {
           })
         );
       }
-      return this.#currentStrategy.search(queryString, this.#queryRunner);
+      return this.#currentStrategy.search(
+        queryString,
+        this.#queryRunner.bind(this)
+      );
     } catch (ex) {
+      // TODO: Generalize exception capture and telemetry push to keep things DRY
+
       const exceptionEvent = new SystemEvent(Events.RUNTIME_EXCEPTION, {
         service: QueryService.service,
         message: ex.message,

@@ -3,7 +3,6 @@ import { Result } from "../../types/result.js";
 import { Problem } from "../../types/problem.js";
 import { SystemEvent, Events } from "../../types/system-event.js";
 import { ProductLookupStrategy, ProductDiscoveryStrategy } from "../query/strategy.js";
-import { str } from "ajv";
 
 const HTTPResponse = {
   /**
@@ -22,14 +21,14 @@ const HTTPResponse = {
         res.json(data);
       },
       /**
-       * @param {String|Object} error
+       * @param {Problem} error
        * @return {void}
        */
       error(error) {
         // res.set("X-Error-Instance-Id", "");
         res.set("X-Total-Count", 1);
         res.status(500);
-        res.json([Problem.of({ title: "INTERNAL ERROR", detail: error.message })]);
+        res.json([error]);
       },
     };
   },
