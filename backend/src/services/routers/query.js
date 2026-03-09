@@ -63,9 +63,6 @@ export class QueryRouter {
      */
     router.get("/search", MiddlewareProvider.QueryService.validateSearchQueryParams, async (req, res, next) => {
       try {
-        /**
-         * @type {Result<Object | Problem>}
-         */
         const strategyName = req.query.qtype;
         QueryService.setStrategy(SearchStrategy[strategyName]); 
 
@@ -77,16 +74,24 @@ export class QueryRouter {
           err: onQueryError 
         });
       } catch (ex) {
-        const exceptionEvent = new SystemEvent(Events.RUNTIME_EXCEPTION, {
-          service: "QueryRouter",
-          message: ex.message,
-          stack: ex.stack,
-        });
-        const logMessage = `INTERNAL_ERROR (QueryRouter): **EXCEPTION ENCOUNTERED** while executing a search query. This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionEvent.detail.header.id}). See details -> ${ex.message}`;
+        const { error: onQueryError } = HTTPResponse.with(res); 
 
-        console.error(logMessage);
-        Events.dispatchEvent(exceptionEvent);
-        next(ex);
+        Result.ok(MiddlewareProvider.Telemetry.createExceptionEvent({
+          service: "QueryRouter",
+          ex,
+        }))
+        .tap((exceptionEvent) => {
+          console.error(`INTERNAL_ERROR (QueryRouter): **EXCEPTION ENCOUNTERED** while executing a search query. This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionEvent.detail.header.id}). See details -> ${ex.message}`);
+          Events.dispatchEvent(exceptionEvent);
+        })
+        .map((exceptionEvent) => Result.error(Problem.of({
+            title: "INTERNAL ERROR",
+            detail: "There was an error while executing the search query.",
+            instance: `runtime_exceptions/query_router/${exceptionEvent.detail.header.id}`,
+          })))
+        .match({
+          err: onQueryError 
+        });                
       }
     });
 

@@ -1,5 +1,6 @@
 import Ajv from "ajv";
 import { ISandbox } from "../interfaces.js";
+import { SystemEvent, Events } from "../types/system-event.js";
 import { Problem } from "../types/problem.js";
 import searchQueryParamSchema from "../schemas/search-query-params.json" with { type: "json" };
 
@@ -90,6 +91,7 @@ export default class MiddlewareProvider {
 
   QueryService = {
     /**
+     * Express middleware method for validating query parameters on a search request
      * @param {*} req 
      * @param {*} res 
      * @param {*} next 
@@ -104,7 +106,7 @@ export default class MiddlewareProvider {
           res.status(400);
           res.json([
             Problem.of({
-              title: "Could not validate query parameters. See problem detail",
+              title: "Could not validate query parameters. See problem detail.",
               detail: validationResult.errors,
             }),
           ]);
@@ -117,6 +119,23 @@ export default class MiddlewareProvider {
         );
         next(ex);
       }
+    }
+  };
+
+  Telemetry = {
+    /**
+     * Application middleware that prepares runtime exceptions for storage in the database
+     * @param {object} options
+     * @param {string} options.service - name of the service that captured the exception
+     * @param {Error} options.ex - the exception instance
+     * @returns {object}
+     */
+    createExceptionEvent({ service, ex }) {
+      return (new SystemEvent(Events.RUNTIME_EXCEPTION, {
+        service,
+        message: ex.message,
+        stack: ex.stack,
+      }));
     }
   };
 }

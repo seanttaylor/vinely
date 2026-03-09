@@ -2,6 +2,7 @@ import { ApplicationService } from "../../system.js";
 import { SystemEvent, Events } from "../types/system-event.js";
 import { Result } from "../types/result.js";
 import { Problem } from "../types/problem.js";
+import e from "express";
 
 /**
  * Raw data row from `vocabulary.phrases` table as returned from Supabase
@@ -155,7 +156,7 @@ export default class QueryService extends ApplicationService {
    * any other datastore) without knowledge of or need for a direct reference to the database)
    * @param {string} sqlString
    * @param {string} strategyName the name of the current search strategy
-   * @returns {Result}
+   * @returns {Result<Object[] | Problem>
    */
   async #queryRunner(sqlString, strategyName) {
     try {
@@ -178,23 +179,27 @@ export default class QueryService extends ApplicationService {
       return Result.ok(!data ? [] : data);
     } catch (ex) {
       // TODO: Generalize exception capture and telemetry push to keep things DRY
-      const exceptionEvent = new SystemEvent(Events.RUNTIME_EXCEPTION, {
-        service: `${QueryService.service}`,
-        message: ex.message,
-        stack: ex.stack,
-      });
-      const logMessage = `INTERNAL ERROR (${QueryService.service}): **EXCEPTION ENCOUNTERED** while running the SQL function associated with strategy (${strategyName}). This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionId}). See details -> ${ex.message}`;
-
-      this.#logger.error(logMessage);
-      this.#sandbox.my.Events.dispatchEvent(exceptionEvent);
-
-      return Result.error(
-        Problem.of({
-          title: "INTERNAL ERROR",
-          detail: "There was an error executing the search query.",
-          instance: `runtime_exceptions/query_serice/${exceptionId}`,
+      return Result.ok(
+        this.#sandbox.my.MiddlewareProvider.Telemetry.createExceptionEvent({
+          service: "QueryService",
+          ex,
         })
-      );
+      )
+        .tap((exceptionEvent) => {
+          console.error(
+            `INTERNAL_ERROR (QueryService): **EXCEPTION ENCOUNTERED** while executing a search query. This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionEvent.detail.header.id}). See details -> ${ex.message}`
+          );
+          this.#sandbox.my.Events.dispatchEvent(exceptionEvent);
+        })
+        .map((exceptionEvent) =>
+          Result.error(
+            Problem.of({
+              title: "INTERNAL ERROR",
+              detail: "There was an error while executing the search query.",
+              instance: `runtime_exceptions/query_service/${exceptionEvent.detail.header.id}`,
+            })
+          )
+        );
     }
   }
 
@@ -227,32 +232,34 @@ export default class QueryService extends ApplicationService {
           })
         );
       }
+
       return this.#currentStrategy.search(
         queryString,
         this.#queryRunner.bind(this)
       );
     } catch (ex) {
       // TODO: Generalize exception capture and telemetry push to keep things DRY
-
-      const exceptionEvent = new SystemEvent(Events.RUNTIME_EXCEPTION, {
-        service: QueryService.service,
-        message: ex.message,
-        stack: ex.stack,
-      });
-      const exceptionId = exceptionEvent.detail.header.id;
-      const logMessage = `INTERNAL_ERROR (${QueryService.service}): **EXCEPTION ENCOUNTERED** while executing a search query. This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionId}). See details -> ${ex.message}`;
-      const displayMessage =
-        "There was an error while executing the search query.";
-
-      console.error(logMessage);
-      this.#sandbox.my.Events.dispatchEvent(exceptionEvent);
-      return Result.error(
-        Problem.of({
-          title: "INTERNAL ERROR",
-          detail: displayMessage,
-          instance: `runtime_exceptions/query_serice/${exceptionId}`,
+      return Result.ok(
+        this.#sandbox.my.MiddlewareProvider.Telemetry.createExceptionEvent({
+          service: "QueryService",
+          ex,
         })
-      );
+      )
+      .tap((exceptionEvent) => {
+        console.error(
+          `INTERNAL_ERROR (QueryService): **EXCEPTION ENCOUNTERED** while executing a search query. This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionEvent.detail.header.id}). See details -> ${ex.message}`
+        );
+        this.#sandbox.my.Events.dispatchEvent(exceptionEvent);
+      })
+      .map((exceptionEvent) =>
+        Result.error(
+          Problem.of({
+            title: "INTERNAL ERROR",
+            detail: "There was an error while executing the search query.",
+            instance: `runtime_exceptions/query_service/${exceptionEvent.detail.header.id}`,
+          })
+        )
+      );        
     }
   }
 }

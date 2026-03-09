@@ -8,7 +8,7 @@ export const policies =  {
     allowedAPIs: ["Config", "RouteService"]
   },
   QueryService: {
-    allowedAPIs: ["Database", "Events"]
+    allowedAPIs: ["Database", "Events", "MiddlewareProvider"]
   },
   RouteService: {
     allowedAPIs: ["Events", "MiddlewareProvider", "QueryService"]

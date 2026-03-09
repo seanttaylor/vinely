@@ -61,6 +61,7 @@ import { policies } from "./policies.js";
             console.error(`INTERNAL ERROR (main): **EXCEPTION ENCOUNTERED** while logging a runtime exception to the database. See details -> ${error.message}`);
           }
         }
+        
         console.log("vinely v0.0.1");
         //console.log(hc.my.QueryService.search("test"));
       },
