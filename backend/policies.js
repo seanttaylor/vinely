@@ -1,16 +1,15 @@
-
 // Describes access control policies for application services.
-export const policies =  {
+export const policies = {
   Database: {
-    allowedAPIs: ["Config"]
+    allowedAPIs: ["Config"],
   },
   HTTPService: {
-    allowedAPIs: ["Config", "RouteService"]
+    allowedAPIs: ["Config", "RouteService"],
   },
   QueryService: {
-    allowedAPIs: ["Database", "Events", "MiddlewareProvider"]
+    allowedAPIs: ["Database", "Events", "MiddlewareProvider"],
   },
   RouteService: {
-    allowedAPIs: ["Events", "MiddlewareProvider", "QueryService"]
-  }
+    allowedAPIs: ["Events", "MiddlewareProvider", "QueryService"],
+  },
 };

@@ -2,6 +2,25 @@ import { Sandbox } from "@honeycomb/core";
 import { Events } from "./src/types/system-event.js";
 import { policies } from "./policies.js";
 
+const Mixin = {
+  /**
+   * Creates a mixin from a given interface
+   * @param {object} mixinInterface - a function definining a Mixin
+   */
+  of(mixinInterface) {
+    return {
+      /**
+       * @param {object} options - local dependencies for use in the mixin
+       */
+      include(options = {}) {
+        return function (target) {
+          Object.assign(target, mixinInterface(options));
+        };
+      },
+    };
+  },
+};
+
 /**
  * This is the main entry point for the application.
  */
@@ -16,11 +35,22 @@ import { policies } from "./policies.js";
         "Events",
         "HTTPService",
         "MiddlewareProvider",
+        "MixinProvider",
         "NOOPService",
         "QueryService",
         "RouteService",
+        "WineService"
       ],
       async (hc) => {
+        const logger = hc.core.logger.getLoggerInstance();
+        const mixinCrudWith = Mixin.of(hc.my.MixinProvider.Crud).include({
+          logger,
+        });
+        
+        /******** SERVICE MIXINS ********/
+        mixinCrudWith(hc.my.WineService);
+        
+        /******** EVENT REGISTRATION ********/
         hc.my.Events.addEventListener(
           Events.RUNTIME_EXCEPTION,
           wrapAsyncEventHandler(onTelemetryPush)
@@ -48,7 +78,8 @@ import { policies } from "./policies.js";
         async function onTelemetryPush(event) {
           console.log(event);
           const client = hc.my.Database.getClient();
-          const { data, error } = await client.schema("telemetry")
+          const { data, error } = await client
+            .schema("telemetry")
             .from("runtime_exceptions")
             .insert({
               id: event.header.id,
@@ -56,12 +87,14 @@ import { policies } from "./policies.js";
               service: event.payload.service,
               stack: event.payload.stack,
             });
-          
+
           if (error) {
-            console.error(`INTERNAL ERROR (main): **EXCEPTION ENCOUNTERED** while logging a runtime exception to the database. See details -> ${error.message}`);
+            console.error(
+              `INTERNAL ERROR (main): **EXCEPTION ENCOUNTERED** while logging a runtime exception to the database. See details -> ${error.message}`
+            );
           }
         }
-        
+
         console.log("vinely v0.0.1");
         //console.log(hc.my.QueryService.search("test"));
       },

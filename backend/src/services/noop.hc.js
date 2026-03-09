@@ -20,10 +20,12 @@ export default class NOOPService extends ApplicationService {
     this.#logger = sandbox.core.logger.getLoggerInstance();
 
     try {
-      console.log(
-        "Checking Cache status from NOOPService:",
-        sandbox.my.CacheService.status
-      );
+      // console.log(
+      //   "Checking Cache status from NOOPService:",
+      //   sandbox.my.CacheService.status
+      // );
+
+      this.#sandbox.my.WineService.findOneById();
     } catch (ex) {
       console.error(
         `INTERNAL_ERROR (NOOPService): Exception encountered while starting the service. See details -> ${ex.message}`
