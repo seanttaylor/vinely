@@ -43,12 +43,16 @@ const Mixin = {
       ],
       async (hc) => {
         const logger = hc.core.logger.getLoggerInstance();
+        const dbClient = hc.my.Database.getClient();
         const mixinCrudWith = Mixin.of(hc.my.MixinProvider.Crud).include({
+          dbClient,
           logger,
         });
         
         /******** SERVICE MIXINS ********/
         mixinCrudWith(hc.my.WineService);
+
+        hc.my.NOOPService;
         
         /******** EVENT REGISTRATION ********/
         hc.my.Events.addEventListener(

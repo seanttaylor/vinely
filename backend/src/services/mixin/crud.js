@@ -1,9 +1,17 @@
+
+/**
+ * @description Maps service names to their corresponding SQL tables
+ */
+const SQL_TABLE_MAP = Object.freeze({
+  WineService: "wines",
+});
+
 /**
  * Mixin interface for typical CRUD capabilities; used to add CRUD to application services.
  * @note Mixins **must** be defined as functions returning object methods. Defining a Mixin as a class will cause any lookups on mixed-in methods to **FAIL**
+ * @param {object} options
  */
-export const CrudMixin = ()=> ({
-
+export const CrudMixin = (options) => ({
   /**
    * @param {object} data
    */
@@ -46,5 +54,5 @@ export const CrudMixin = ()=> ({
    */
   exists(id) {
     throw new Error("Not Implemented");
-  }
-}) 
+  },
+});

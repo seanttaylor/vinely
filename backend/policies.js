@@ -10,6 +10,9 @@ export const policies = {
     allowedAPIs: ["Database", "Events", "MiddlewareProvider"],
   },
   RouteService: {
-    allowedAPIs: ["Events", "MiddlewareProvider", "QueryService"],
+    allowedAPIs: ["Events", "MiddlewareProvider", "QueryService", "WineService"],
+  },
+  NOOPService: {
+    allowedAPIs: ["WineService"]
   },
 };
