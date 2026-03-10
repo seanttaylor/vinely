@@ -13,8 +13,22 @@ export const CrudMixin = ({ dbClient, logger, sqlMap }) => ({
   /**
    * @param {object} data
    */
-  create(data) {
-    throw new Error("Not implemented");
+  async create(data = {}) {
+    const { error } = await dbClient
+      .from(`${sqlMap[this.constructor.name]}`)
+      .insert([data]);
+
+    if (error) {
+      logger.error(
+        `INTERNAL ERROR (CrudMixin): The database returned an error while inserting records. See details -> ${error.message}`
+      );
+      return Result.error(
+        Problem.of({
+          title: "INTERNAL ERROR",
+          detail: "There was an error creating the requested resource (wines).",
+        })
+      );
+    }
   },
 
   /**
@@ -41,11 +55,15 @@ export const CrudMixin = ({ dbClient, logger, sqlMap }) => ({
       .select("*");
 
     if (error) {
-      logger.error(`INTERNAL ERROR (CrudMixin): The database returned an error while fetching records. See details -> ${error.message}` );
-      return Result.error(Problem.of({
-        title: "INTERNAL ERROR",
-        detail: "There was an error fetching the requested resource."
-      }));
+      logger.error(
+        `INTERNAL ERROR (CrudMixin): The database returned an error while fetching records. See details -> ${error.message}`
+      );
+      return Result.error(
+        Problem.of({
+          title: "INTERNAL ERROR",
+          detail: "There was an error fetching the requested resource.",
+        })
+      );
     }
 
     return Result.ok(!data ? [] : data);

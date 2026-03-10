@@ -2,11 +2,31 @@ import Ajv from "ajv";
 import { ISandbox } from "../interfaces.js";
 import { SystemEvent, Events } from "../types/system-event.js";
 import { Problem } from "../types/problem.js";
+
+/******** SCHEMAS ********/
 import searchQueryParamSchema from "../schemas/search-query-params.json" with { type: "json" };
+import producerSchema from "../schemas/producer.json" with { type: "json" };
+import wineSchema from "../schemas/wine.json" with { type: "json" };
+
+/**
+ * @description Maps API endpoints names to their corresponding JSON Schema documents
+ */
+const RESOURCE_SCHEMA_MAP = Object.freeze({
+  "/wines": wineSchema,
+  "/producers": producerSchema
+});
 
 const ajv = new Ajv({allErrors: true});
-const validateSearchQuery = (() => {
-  const validate = ajv.compile(searchQueryParamSchema);
+
+/**
+ * Validates a JSON object against a specified JSON Schema
+ * @param {object} schema - a JSON Schema document to use for validation
+ */
+const validateWithSchema = ((schema) => {
+  const validate = ajv.compile(schema);
+  /**
+   * @param params - a JSON object to validate against the `schema` argument
+   */
   return (params) => {
     if (validate(params)) {
       return {
@@ -19,13 +39,14 @@ const validateSearchQuery = (() => {
       errors: validate.errors
     }
   } 
-})();
+});
 
 export default class MiddlewareProvider {
-  #sandbox;
   #cache;
   #dbClient;
   #logger;
+  #resourceSchemaMap;
+  #sandbox;
 
   /**
    * @param {ISandbox} sandbox
@@ -98,7 +119,8 @@ export default class MiddlewareProvider {
      */
     validateSearchQueryParams: (req, res, next) => {
       try {
-        const validationResult = validateSearchQuery(req.query);
+        const validateQuery = validateWithSchema(searchQueryParamSchema);
+        const validationResult = validateQuery(req.query);
         if (validationResult.isValid) {
           next();
         } else {
@@ -138,4 +160,33 @@ export default class MiddlewareProvider {
       }));
     }
   };
+
+  Validation = {
+    validateRequestBody: (req, res, next) => {
+      try {
+        const validatePayload = validateWithSchema(RESOURCE_SCHEMA_MAP[req.path]);
+        const validationResult = validatePayload(req.body);
+
+        if (validationResult.isValid) {
+          next();
+        } else {
+          res.set("X-Total-Count", 1);
+          res.status(400);
+          res.json([
+            Problem.of({
+              title: "Could not validate query parameters. See problem detail.",
+              detail: validationResult.errors,
+            }),
+          ]);
+          return;
+        }
+
+      } catch(ex) {
+        this.#logger.error(
+          `INTERNAL_ERROR (MiddlewareProvider.Validation): **EXCEPTION ENCOUNTERED** while validating request body on (${req.path}). See details -> ${ex.message}`
+        );
+        next(ex);
+      }
+    }
+  }
 }

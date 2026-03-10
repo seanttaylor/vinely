@@ -92,6 +92,52 @@ export class ProducerRouter {
       }
     });
 
+    /**
+     * @param {Object} req
+     * @param {Object} res
+     * @param {Function} next
+     */
+    router.post("/producers", MiddlewareProvider.Validation.validateRequestBody, async (req, res, next) => {
+      try {
+        const queryResult = await ProducerService.create(req.body);
+        const { success: onQuerySuccess, error: onQueryError } =
+          HTTPResponse.with(res);
+
+        queryResult.match({
+          ok: onQuerySuccess,
+          err: onQueryError,
+        });
+      } catch (ex) {
+        const { error: onQueryError } = HTTPResponse.with(res);
+
+        Result.ok(
+          MiddlewareProvider.Telemetry.createExceptionEvent({
+            service: "WineRouter",
+            ex,
+          })
+        )
+          .tap((exceptionEvent) => {
+            console.error(
+              `INTERNAL_ERROR (WineRouter): **EXCEPTION ENCOUNTERED** while creating the requested resource (wines). This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionEvent.detail.header.id}). See details -> ${ex.message}`
+            );
+            Events.dispatchEvent(exceptionEvent);
+          })
+          .map((exceptionEvent) =>
+            Result.error(
+              Problem.of({
+                title: "INTERNAL ERROR",
+                detail:
+                  "There was an error while creating the requested resource (wines).",
+                instance: `runtime_exceptions/wine_router/${exceptionEvent.detail.header.id}`,
+              })
+            )
+          )
+          .match({
+            err: onQueryError,
+          });
+      }
+    });
+
     return router;
   }
 }
