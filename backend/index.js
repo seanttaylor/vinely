@@ -10,9 +10,14 @@ const Mixin = {
   of(mixinInterface) {
     return {
       /**
-       * @param {object} options - local dependencies for use in the mixin
+       * 
+       * @param {object} options - optional local dependencies for use in the mixin
        */
       include(options = {}) {
+        /**
+         * Applies the mixin to application service instance
+         * @param {object} target - an application service instance; this function **MUST** be called to use the mixin
+         */
         return function (target) {
           Object.assign(target, mixinInterface(options));
         };
@@ -37,6 +42,7 @@ const Mixin = {
         "MiddlewareProvider",
         "MixinProvider",
         "NOOPService",
+        "ProducerService",
         "QueryService",
         "RouteService",
         "WineService"
@@ -44,15 +50,17 @@ const Mixin = {
       async (hc) => {
         const logger = hc.core.logger.getLoggerInstance();
         const dbClient = hc.my.Database.getClient();
+        const config = hc.my.Config;
+
         const mixinCrudWith = Mixin.of(hc.my.MixinProvider.Crud).include({
           dbClient,
           logger,
+          sqlMap: config.vars.SQL_TABLE_MAP,
         });
         
         /******** SERVICE MIXINS ********/
         mixinCrudWith(hc.my.WineService);
-
-        hc.my.NOOPService;
+        mixinCrudWith(hc.my.ProducerService);
         
         /******** EVENT REGISTRATION ********/
         hc.my.Events.addEventListener(

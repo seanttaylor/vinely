@@ -73,9 +73,10 @@ export default class HTTPService extends ApplicationService {
         next();
       });
 
-      app.use(this.#sandbox.my.RouteService.Status);
+      app.use(this.#sandbox.my.RouteService.Producer);
       app.use(this.#sandbox.my.RouteService.Query);
       app.use(this.#sandbox.my.RouteService.Wine);
+      app.use(this.#sandbox.my.RouteService.Status);
       // app.use(this.#sandbox.my.RouteService.Subscription);
 
       // Rate-limited routes

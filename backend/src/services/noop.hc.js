@@ -24,8 +24,6 @@ export default class NOOPService extends ApplicationService {
       //   "Checking Cache status from NOOPService:",
       //   sandbox.my.CacheService.status
       // );
-
-      this.#sandbox.my.WineService.findOneById();
     } catch (ex) {
       console.error(
         `INTERNAL_ERROR (NOOPService): Exception encountered while starting the service. See details -> ${ex.message}`

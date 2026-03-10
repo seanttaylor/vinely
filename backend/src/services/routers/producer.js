@@ -34,17 +34,17 @@ const HTTPResponse = {
 };
 
 /**
- * Router exposing endpoints for wine management
+ * Router exposing endpoints for wine producer management
  */
-export class WineRouter {
+export class ProducerRouter {
   /**
    * @param {Object} options
    * @param {Object} options.middlewareProvider - object containing middleware methods
    * @param {Object} options.Events - interface for dispatching system events
    * @param {Object} options.MiddlewareProvider common interface for service middleware
-   * @param {Object} options.WineService
+   * @param {Object} options.ProducerService
    */
-  constructor({ Events, MiddlewareProvider, WineService }) {
+  constructor({ Events, MiddlewareProvider, ProducerService }) {
     const router = express.Router();
 
     /**
@@ -52,9 +52,9 @@ export class WineRouter {
      * @param {Object} res
      * @param {Function} next
      */
-    router.get("/wines", async (req, res, next) => {
+    router.get("/producers", async (req, res, next) => {
       try {
-        const queryResult = await WineService.find();
+        const queryResult = await ProducerService.find();
         const { success: onQuerySuccess, error: onQueryError } =
           HTTPResponse.with(res);
 
@@ -67,13 +67,13 @@ export class WineRouter {
 
         Result.ok(
           MiddlewareProvider.Telemetry.createExceptionEvent({
-            service: "WineRouter",
+            service: "ProducerRouter",
             ex,
           })
         )
           .tap((exceptionEvent) => {
             console.error(
-              `INTERNAL_ERROR (WineRouter): **EXCEPTION ENCOUNTERED** while fetching the requested resource (wines). This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionEvent.detail.header.id}). See details -> ${ex.message}`
+              `INTERNAL_ERROR (ProducerRouter): **EXCEPTION ENCOUNTERED** while fetching a resource (producers). This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionEvent.detail.header.id}). See details -> ${ex.message}`
             );
             Events.dispatchEvent(exceptionEvent);
           })
@@ -81,8 +81,8 @@ export class WineRouter {
             Result.error(
               Problem.of({
                 title: "INTERNAL ERROR",
-                detail: "There was an error while fetching the requested resource (wines).",
-                instance: `runtime_exceptions/wine_router/${exceptionEvent.detail.header.id}`,
+                detail: "There was an error while fetching the requested resource (producers)",
+                instance: `runtime_exceptions/producer_router/${exceptionEvent.detail.header.id}`,
               })
             )
           )

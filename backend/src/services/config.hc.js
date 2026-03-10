@@ -2,6 +2,14 @@
 import { ApplicationService } from "../../system.js";
 
 /**
+ * @description Maps service names to their corresponding SQL tables
+ */
+const SQL_TABLE_MAP = Object.freeze({
+  WineService: "wines",
+  ProducerService: "producers"
+});
+
+/**
  *
  */
 export default class Config extends ApplicationService {
@@ -40,6 +48,7 @@ export default class Config extends ApplicationService {
   get vars() {
     return {
       PORT: 8080,
+      SQL_TABLE_MAP,
     };
   }
 }
