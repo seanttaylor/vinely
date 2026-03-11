@@ -12,6 +12,7 @@ import { Problem } from "../../types/problem.js";
  * @property {string} phrase - Natural language phrase users can search.
  * @property {string} condition - SQL condition fragment applied to the wines table.
  * @property {string} definition - Short human-readable explanation of the phrase.
+ * @property {string|null} join_required - indicates a join is required to use the phrase in the SQL query
  */
 
 /**
@@ -34,6 +35,15 @@ import { Problem } from "../../types/problem.js";
  * @property {RawKeyword[]} queryTerms
  * @property {RawPhrase[]} queryPhrases
  */
+
+/**
+ * A map of structured SQL query components; they may include JOINs and other clauses or templates that
+ * must be expanded into a valid SQL query to pass to the database
+ * @typedef {Object} QueryFragment
+ * @property {string} condition
+ * @property {string|null} join
+ */
+
 
 /**
  * Ensures attributes that are scalar values or booleans are coerced to the correct type to
@@ -106,11 +116,14 @@ export default class QueryService extends ApplicationService {
   /**
    * Creates a local map of search keywords and phrases for realtime translation to SQL queries
    * @param {Vocabulary} vocabulary
-   * @returns {object}
+   * @returns {{keywords: QueryFragment, phrases: QueryFragment}}
    */
   #buildLocalVocabularyMap({ queryPhrases, queryTerms }) {
     const phrases = queryPhrases.reduce((res, currentItem) => {
-      res[currentItem.phrase] = currentItem.condition;
+      res[currentItem.phrase] = {
+        condition: currentItem.condition,
+        join: currentItem.join_required
+      };
       return res;
     }, {});
 
@@ -119,9 +132,13 @@ export default class QueryService extends ApplicationService {
         ? COERCED_TYPES[currentItem.attribute](currentItem.value)
         : `'${currentItem.value}'`;
 
-      res[
-        currentItem.term
-      ] = `${currentItem.attribute} ${currentItem.operator} ${formattedValue}`;
+      const condition = `${currentItem.attribute} ${currentItem.operator} ${formattedValue}`;
+
+      res[currentItem.term] = {
+        condition,
+        join: null
+      } 
+
       return res;
     }, {});
 

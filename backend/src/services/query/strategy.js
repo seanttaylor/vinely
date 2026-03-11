@@ -1,6 +1,17 @@
 import { Result } from "../../types/result.js";
+import { Problem } from "../../types/problem.js";
 
 const MAX_PHRASE_LENGTH = 3;
+
+/**
+ * Mapping of SQL table names to query aliases; used in the
+ * SQL template fragment expansion step in teh query pipeline
+ * @readonly
+ * @enum {string}
+ */
+const ALIAS = Object.freeze({
+  wine_grapes: "wg",
+});
 
 /**
  * Helper methods for pre-processing search queries
@@ -28,7 +39,7 @@ const queryTools = {
    * @param {KeywordMap} keywordMap single-token keyword lookup table
    * @param {number} maxPhraseLength  maximum phrase length to attempt
    *
-   * @returns {QueryTokenizationResult}
+   * @returns {Object[]}
    */
   extractKeywords(
     tokens,
@@ -37,8 +48,8 @@ const queryTools = {
     maxPhraseLength = MAX_PHRASE_LENGTH
   ) {
     /**
-     * @property {string[]} phraseFilter SQL fragments associated with matched phrases
-     * @property {string[]} keywordFilter SQL fragments associated with matched keywords
+     * @property {object[]} phraseFilter SQL fragments associated with matched phrases
+     * @property {object[]} keywordFilter SQL fragments associated with matched keywords
      */
     const result = {
       phraseFilter: [],
@@ -94,12 +105,55 @@ const queryTools = {
       .filter(Boolean);
   },
   /**
-   * @param {string[]} sqlFilters - list of SQL fragments that mapped to known keywords and phrases in the search vocabulary
+   *
+   * @param {QueryFragment[]} fragments
+   * @returns {Object[]}
+   */
+  expandAliases(fragments) {
+    return fragments.map((fragment) => {
+      return Object.assign(fragment, {
+        condition: fragment.condition.replace(
+          /\{alias\.([a-z_]+)\}/g,
+          (_, key) => ALIAS[key]
+        ),
+        join: fragment.join?.replace(
+          /\{alias\.([a-z_]+)\}/g,
+          (_, key) => ALIAS[key]
+        ),
+      });
+    });
+  },
+  /**
+   * Transforms a list of `QueryFragments` into a map of fragments grouped into SQL conditions or JOIN clauses
+   * @param {QueryFragment[]} fragments - a list of
+   * @returns {{joins: object[], conditions: object[]}}
+   */
+  planSQLQuery(fragments) {
+    const joins = new Set();
+    const conditions = [];
+
+    for (const fragment of fragments) {
+      conditions.push(fragment.condition);
+
+      if (fragment.join) {
+        joins.add(fragment.join);
+      }
+    }
+
+    return {
+      joins: [...joins],
+      conditions,
+    };
+  },
+  /**
+   * @param {object} options - SQL fragments mapped to known keywords and phrases in the search vocabulary
+   * @param {object} options.joins - a list of JOIN clauses
+   * @param {object} options.conditions - a list of SQL conditions
    * @returns {string}
    */
-  buildSQLQuery(sqlFilters) {
-    return sqlFilters.length
-      ? `SELECT * FROM wines WHERE ${sqlFilters.join(" AND ")}`
+  buildSQLQuery(options) {
+    return Object.keys(options).length
+      ? `SELECT wines.* FROM wines ${options.joins.join("\n")} ${options.conditions.length ? `WHERE ${options.conditions.join(" AND ")}` : ""}`
       : "";
   },
 };
@@ -169,10 +223,17 @@ export class ProductDiscoveryStrategy extends SearchStrategy {
           this.vocabulary.keywords
         )
       )
+      .map(queryTools.expandAliases)
+      .map(queryTools.planSQLQuery)
       .map(queryTools.buildSQLQuery);
 
     if (sqlResult.isError()) {
-      return sqlResult;
+      // TODO: Find a way to get the centralized logger into strategies
+      console.error(`INTERNAL ERROR (ProductDiscoveryStrategy): **EXCEPTION ENCOUNTERED** while executing the search query. See details -> ${sqlResult.getError()}`);
+      return Result.error(Problem.of({ 
+        title: "INTERNAL ERROR",
+        detail: "There was an error executing the search query." 
+      }));
     }
 
     return queryRunner(sqlResult.value, this.constructor.name);
