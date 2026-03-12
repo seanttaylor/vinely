@@ -41,7 +41,7 @@ import { Problem } from "../../types/problem.js";
  * must be expanded into a valid SQL query to pass to the database
  * @typedef {Object} QueryFragment
  * @property {string} condition
- * @property {string|null} join
+ * @property {string|null} joinKey
  */
 
 
@@ -127,15 +127,11 @@ export default class QueryService extends ApplicationService {
          res[length] = {};
        }
 
-       res[length][phrase] = {
-         condition: currentItem.condition,
-         join: currentItem.join_required ?? null,
-       };
-
-      res[currentItem.phrase] = {
+      res[length][phrase] = {
         condition: currentItem.condition,
-        join: currentItem.join_required
+        joinKey: currentItem.join_required ?? null,
       };
+
       return res;
     }, {});
 

@@ -5,12 +5,24 @@ const MAX_PHRASE_LENGTH = 3;
 
 /**
  * Mapping of SQL table names to query aliases; used in the
- * SQL template fragment expansion step in teh query pipeline
+ * SQL template fragment expansion step in the query pipeline
  * @readonly
  * @enum {string}
  */
 const ALIAS = Object.freeze({
   wine_grapes: "wg",
+});
+
+
+/**
+ * Mapping of required join table names to aliased JOIN clause tempaltes; they 
+ * are later expanded into the SQL string resulting from the query pipeline
+ * @readonly
+ * @enum {string}
+ */
+const JOIN_REGISTRY = Object.freeze({
+  wine_grapes:
+    "JOIN wine_grapes {alias.wine_grapes} ON {alias.wine_grapes}.wine_id = wines.id",
 });
 
 /**
@@ -105,7 +117,10 @@ const queryTools = {
       .filter(Boolean);
   },
   /**
-   *
+   * Expands table aliases into valid database table names. For queries that require
+   * joins, this method attaches and immediately expands the 
+   * relevant JOIN clause template from the `JOIN_REGISTRY`
+   * 
    * @param {QueryFragment[]} fragments
    * @returns {Object[]}
    */
@@ -116,10 +131,10 @@ const queryTools = {
           /\{alias\.([a-z_]+)\}/g,
           (_, key) => ALIAS[key]
         ),
-        join: fragment.join?.replace(
+        join: JOIN_REGISTRY[fragment.joinKey]?.replace(
           /\{alias\.([a-z_]+)\}/g,
           (_, key) => ALIAS[key]
-        ),
+        )
       });
     });
   },
