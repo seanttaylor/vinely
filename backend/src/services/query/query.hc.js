@@ -120,6 +120,18 @@ export default class QueryService extends ApplicationService {
    */
   #buildLocalVocabularyMap({ queryPhrases, queryTerms }) {
     const phrases = queryPhrases.reduce((res, currentItem) => {
+       const phrase = currentItem.phrase //.toLowerCase().trim();
+       const length = phrase.split(/\s+/).length;
+
+       if (!res[length]) {
+         res[length] = {};
+       }
+
+       res[length][phrase] = {
+         condition: currentItem.condition,
+         join: currentItem.join_required ?? null,
+       };
+
       res[currentItem.phrase] = {
         condition: currentItem.condition,
         join: currentItem.join_required
