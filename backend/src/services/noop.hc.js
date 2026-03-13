@@ -25,7 +25,7 @@ export default class NOOPService extends ApplicationService {
       //   sandbox.my.CacheService.status
       // );
     } catch (ex) {
-      console.error(
+      this.#logger.error(
         `INTERNAL_ERROR (NOOPService): Exception encountered while starting the service. See details -> ${ex.message}`
       );
     }

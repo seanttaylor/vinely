@@ -1,18 +1,19 @@
 {
-    "name": "@vinely/backend",
-    "version": "0.0.1",
-    "description": "A search engine for wines of the world",
-    "scripts": {
-        "start": "node --env-file=.env index.js"
-    },
-    "dependencies": {
-        "@honeycomb/core": "file:../packages/honeycomb/core",
-        "@supabase/supabase-js": "^2.98.0",
-        "ajv": "^8.18.0",
-        "cors": "^2.8.6",
-        "express": "^5.2.1",
-        "express-rate-limit": "^8.2.1",
-        "morgan": "^1.10.1"
-    },
-    "type": "module"
+  "name": "@vinely/backend",
+  "version": "0.0.1",
+  "description": "Semantic search for wine inventory systems",
+  "scripts": {
+    "start": "node --env-file=.env index.js",
+    "test:unit": "node --test --experimental-test-coverage \"src/tests/**/*.spec.js\"",
+  },
+  "dependencies": {
+    "@honeycomb/core": "file:../packages/honeycomb/core",
+    "@supabase/supabase-js": "^2.98.0",
+    "ajv": "^8.18.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "morgan": "^1.10.1"
+  },
+  "type": "module"
 }

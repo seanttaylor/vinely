@@ -106,3 +106,77 @@ At application startup, the system performs vocabulary bootstrapping by loading 
 
 When a query has been fully constructed, strategies do not execute SQL directly; instead they pass the query to a `queryRunner` abstraction that defines the execution boundary between query planning and data access. This separation allows strategies to remain agnostic about the underlying datastore or execution mechanism. In the current architecture, the execution layer ultimately invokes database RPC functions that perform the search query within the database environment.
 
+## Search Strategies In-Depth
+
+> _Search Strategy Types define the different query interpretation approaches supported by the search system, allowing the service to handle distinct search intents using specialized query logic_.
+
+### Summary
+
+The search system supports multiple strategy types to accommodate different ways users search for wines. Some queries describe characteristics of a product—such as grape variety, flavor profile, or region—while others attempt to locate a specific wine by name. 
+
+Rather than forcing both intents through a single interpretation pipeline, the system defines separate strategies that encapsulate the logic required for each search style. Each strategy implements the same interface but applies a different method of transforming user input into a query against the datastore. 
+
+This separation allows the system to support both exploratory product discovery and direct product lookup while keeping the query logic for each approach focused and maintainable.
+
+#### ProductDiscoveryStrategy 
+This strategy handles **exploratory, attribute-based searches** where the user is describing characteristics of a wine rather than naming a specific product.
+
+Examples:
+
+* “dry red wine”
+* “cabernet with blackberry”
+* “italian white wine”
+
+Mechanically it:
+
+1. Processes the natural language query through the **query pipeline**
+   (normalize → tokenize → extract keywords/phrases → expand aliases → plan SQL → build SQL).
+
+2. Uses the **search vocabulary** to translate tokens and phrases into **SQL fragments**.
+
+3. Dynamically builds a **filter-based SQL query** against the wine dataset.
+
+4. Executes the resulting SQL via the **queryRunner abstraction**.
+
+So **ProductDiscoveryStrategy = attribute filtering and discovery**.
+
+
+#### ProductLookupStrategy
+
+This strategy is intended for **direct product identification** rather than attribute filtering.
+
+Examples:
+
+* “Caymus Cabernet”
+* “La Crema Pinot Noir”
+* “Duckhorn Merlot”
+
+Instead of interpreting descriptors like *dry* or *blackberry*, the strategy will:
+
+1. Attempt to **identify a specific wine by name**.
+2. Likely use **full-text search, trigram similarity, or a search RPC** on product names.
+3. Return **direct matches to known products**, not a dynamically constructed attribute query.
+
+So **ProductLookupStrategy = name-based product search**.
+
+---
+
+### Conceptual Difference
+
+| Strategy                 | Query Intent                            | Data Interpretation                  | Query Construction                  |
+| ------------------------ | --------------------------------------- | ------------------------------------ | ----------------------------------- |
+| ProductDiscoveryStrategy | “Find wines with these characteristics” | Vocabulary-driven attribute matching | Dynamically assembled SQL fragments |
+| ProductLookupStrategy    | “Find this specific wine”               | Name or brand matching               | Direct product search query         |
+
+---
+
+#### Architectural Rationale
+
+Separating these strategies prevents two different search intents from interfering with each other:
+
+* **Discovery queries** need vocabulary interpretation and SQL fragment composition.
+* **Lookup queries** need **string matching against product names**.
+
+>Trying to run both through the same pipeline would produce worse results.
+
+
