@@ -89,6 +89,7 @@ export default class QueryService extends ApplicationService {
     super();
 
     try {
+
       this.#dbClient = sandbox.my.Database.getClient();
       this.#sandbox = sandbox;
       this.#logger = sandbox.core.logger.getLoggerInstance();
@@ -257,7 +258,8 @@ export default class QueryService extends ApplicationService {
         );
       }
 
-      return this.#currentStrategy.search(
+      // We `await` here to ensure any uncaught exceptions in the search strategy are captured below
+      return await this.#currentStrategy.search(
         queryString,
         this.#queryRunner.bind(this)
       );
