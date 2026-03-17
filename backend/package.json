@@ -4,7 +4,7 @@
   "description": "Semantic search for wine inventory systems",
   "scripts": {
     "start": "node --env-file=.env index.js",
-    "test:unit": "node --test --experimental-test-coverage \"src/tests/**/*.spec.js\""
+    "test:unit": "node --test --experimental-test-coverage \"src/tests/**/*.spec.js\" --test-coverage-exclude=\"src/tests/**/.*.js\""
   },
   "dependencies": {
     "@honeycomb/core": "file:../packages/honeycomb/core",

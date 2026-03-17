@@ -89,7 +89,6 @@ export default class QueryService extends ApplicationService {
     super();
 
     try {
-
       this.#dbClient = sandbox.my.Database.getClient();
       this.#sandbox = sandbox;
       this.#logger = sandbox.core.logger.getLoggerInstance();

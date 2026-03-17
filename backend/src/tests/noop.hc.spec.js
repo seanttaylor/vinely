@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { TestingTools } from "./testing.tools.js";
 import NOOPService from "../services/noop.hc.js";
 
-const getServiceHarness = (service) =>
-  TestingTools.Harness.createServiceHarness(service);
+const getServiceHarness = (service, overrides) =>
+  TestingTools.Harness.createServiceHarness(service, overrides);
 
 describe("NOOPService", () => {
   it("Should be able to instantiate NOOPService", () => {
