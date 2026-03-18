@@ -26,6 +26,8 @@ const {
 } = TestingTools.Fakes;
 
 /******** SPIES ********/
+
+// TODO: Refactor with new generalized spy factory
 const createSpy = (options = { _callCount: 0 }) => ({
   get callCount() {
     return options._callCount;
