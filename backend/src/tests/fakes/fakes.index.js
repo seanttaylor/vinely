@@ -1,24 +1,19 @@
 /**
  * A naive spy implementation for verifying and counting logger method calls
  */
-const FakeLoggerImpl = (() => {
-  const _callCount = {
-    log: 0,
-    error: 0
-  };
-
+const FakeLoggerImpl = (options = { _callCount: { log: 0, error: 0 } }) => {
   return {
     get callCount() {
-      return _callCount;
+      return options._callCount;
     },
     log() {
-      _callCount.log += 1;
+      options._callCount.log += 1;
     },
     info() {},
     warn() {},
     error() {},
   };
-})();
+};
 
 /**
  * Application database implementation that only raises exceptions on query operations
@@ -58,21 +53,23 @@ export const FakeSearchImpl = {
   },
 };
 
-
-export const mixinFakeLogger = {
-  logger: {
-    getLoggerInstance() {
-      return FakeLoggerImpl;
+export const mixinFakeLogger = (() => {
+  const _currentImpl = FakeLoggerImpl();
+  return {
+    logger: {
+      getLoggerInstance() {
+        return _currentImpl;
+      },
     },
-  },
-  /**
-   * Convenience method for accessing the fake logger implementations call count; necessary to ensure
-   * the logger implementation remains hidden
-   */
-  get callCount() {
-    return FakeLoggerImpl.callCount;
-  },
-};
+    /**
+     * Convenience method for accessing the fake logger implementations call count; necessary to ensure
+     * the logger implementation remains hidden
+     */
+    get callCount() {
+      return _currentImpl.callCount;
+    },
+  };
+})();
 
 /**
  * A database service whose client cannot be initialized
@@ -95,7 +92,7 @@ export const mixinFakeBrokenSupabaseClientOnlyThrows = {
 };
 
 /**
- * A fake RPC interface that only raises exceptions 
+ * A fake RPC interface that only raises exceptions
  */
 export const mixinFakeBrokenRPC = {
   async rpc() {
@@ -104,7 +101,7 @@ export const mixinFakeBrokenRPC = {
 };
 
 /**
- * A fake RPC interface that only returns errors 
+ * A fake RPC interface that only returns errors
  */
 export const mixinFakeRPCWithErrors = {
   /**
@@ -116,7 +113,7 @@ export const mixinFakeRPCWithErrors = {
         message: "TEST: The RPC client returned an error",
       },
     };
-  }, 
+  },
 };
 
 /**

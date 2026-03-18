@@ -45,6 +45,7 @@ const createSpy = (options = { _callCount: 0 }) => ({
   },
 });
 
+
 /******** HELPERS ********/
 const getServiceHarness = (service, overrides) =>
   TestingTools.Harness.createServiceHarness(service, overrides);
@@ -52,7 +53,7 @@ const getServiceHarness = (service, overrides) =>
 const DEFAULT_TIMEOUT_MILLIS = 1350;
 
 describe("QueryService", () => {
-  it.skip("Should instantiate QueryService", () => {
+  it("Should instantiate QueryService", () => {
     const { service } = getServiceHarness(
       QueryService,
       mixinFakeSupabaseClient
@@ -60,7 +61,7 @@ describe("QueryService", () => {
     assert.ok(service);
   });
 
-  it.skip("Should return SERVICE UNAVAILABLE when service is not ready", async () => {
+  it("Should return SERVICE UNAVAILABLE when service is not ready", async () => {
     const { service } = getServiceHarness(
       QueryService,
       mixinFakeSupabaseClient
@@ -73,7 +74,7 @@ describe("QueryService", () => {
     assert.equal(result.getError().title, "SERVICE UNAVAILABLE");
   });
 
-  it.skip("Should FAIL to create the service when an exception is raised during instantiation", (t) => {
+  it("Should FAIL to create the service when an exception is raised during instantiation", (t) => {
     assert.throws(() => {
       const { service } = getServiceHarness(
         QueryService,
@@ -82,7 +83,7 @@ describe("QueryService", () => {
     });
   });
 
-  it.skip("Should FAIL to create the service when the loading vocabulary encounters an exception", async (t) => {
+  it("Should FAIL to create the service when the loading vocabulary encounters an exception", async (t) => {
     const { service } = getServiceHarness(QueryService, {
       ...mixinFakeBrokenSupabaseClientOnlyThrows,
       core: { ...mixinFakeLogger },
@@ -92,7 +93,7 @@ describe("QueryService", () => {
     assert.equal(mixinFakeLogger.callCount.log, 1);
   });
 
-  it.skip("Should be able to set the search strategy", async (t) => {
+  it("Should be able to set the search strategy", async (t) => {
     const { service } = getServiceHarness(
       QueryService,
       mixinFakeSupabaseClient
@@ -117,7 +118,7 @@ describe("QueryService", () => {
     assert.deepStrictEqual(mockStrategy.vocabulary, vocabularyStub);
   });
 
-  it.skip("Should be able to receive an error Result type if the current strategy produces an error", async () => {
+  it("Should be able to receive an error Result type if the current strategy produces an error", async () => {
     const strategy = TestingTools.Fakes.Strategy.onSearchStrategyError;
     const { service } = getServiceHarness(QueryService, {
       ...mixinFakeSupabaseClient,
@@ -135,7 +136,7 @@ describe("QueryService", () => {
     assert.ok(result.isError());
   });
 
-  it.skip("Should be able to receive an error Result type if the current strategy throws an exception", async () => {
+  it("Should be able to receive an error Result type if the current strategy throws an exception", async () => {
     const strategy = TestingTools.Fakes.Strategy.onSearchStrategyException;
     const { service } = getServiceHarness(QueryService, {
       ...mixinFakeSupabaseClient,
@@ -162,7 +163,7 @@ describe("QueryService", () => {
     );
   });
 
-  it.skip("Should FAIL when the query runner encounters an exception", async () => {
+  it("Should FAIL when the query runner encounters an exception", async () => {
     const spy = ((options = { _callCount: 0 }) => ({
       get callCount() {
         return options._callCount;
@@ -173,15 +174,15 @@ describe("QueryService", () => {
         };
       },
       /**
-       * 
-       * @param {string} queryString 
-       * @param {function} queryRunner 
+       *
+       * @param {string} queryString
+       * @param {function} queryRunner
        */
       onSearchStrategyRun: (queryString, queryRunner) => {
         options._callCount += 1;
         options._args = { queryString, queryRunner };
         return queryRunner(queryString, "ATestStrategy");
-      }
+      },
     }))();
     const { service } = getServiceHarness(QueryService, {
       ...mixinFakeBrokenSupabaseClientRPCOnlyThrows,
@@ -205,7 +206,7 @@ describe("QueryService", () => {
     assert.ok(result.isError());
   });
 
-  it.skip("Should FAIL when the query runner returns an error", async () => {
+  it("Should FAIL when the query runner returns an error", async () => {
     const spy = createSpy();
     const { service } = getServiceHarness(QueryService, {
       ...mixinFakeBrokenSupabaseClientRPCOnlyErrors,
@@ -229,7 +230,7 @@ describe("QueryService", () => {
     assert.ok(result.isError());
   });
 
-  it("Should FAIL to create the service when loading the vocabulary map encounters an error", async (t) => {
+  it("Should FAIL to create the service and log when loading the vocabulary map encounters an error", async (t) => {
     const { service } = getServiceHarness(QueryService, {
       ...mixinFakeSupabaseClientReturnsVocabularyErrors,
       ...mixinFakeMiddleware,
@@ -237,8 +238,9 @@ describe("QueryService", () => {
       core: { ...mixinFakeLogger },
     });
 
-    // mixinLogger.callCount = 1
     await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
-  })
+
+    assert.equal(mixinFakeLogger.callCount.log, 1);
+  });
   //
 });
