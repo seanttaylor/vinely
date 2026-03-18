@@ -12,6 +12,7 @@ import {
   mixinFakeMiddleware,
   FakeSearchImpl,
   mixinFakeBrokenRPC,
+  mixinFakeRPCWithData,
   mixinFakeRPCWithErrors,
 } from "./fakes/fakes.index.js";
 
@@ -27,9 +28,22 @@ const getStubVocabulary = (table) =>
     : { data: keywords, error: null };
 
 const getStubVocabularyWithPhraseErrors = (table) => {
-  return { data: null, error: "TEST: There was an error pulling vocabulary from the database"
-  }
-}
+  return table === "phrases"
+    ? {
+        data: null,
+        error: "TEST: There was an error pulling phrases from the database",
+      }
+    : { data: keywords, error: null };
+};
+
+const getStubVocabularyWithTermsErrors = (table) => {
+  return table === "terms"
+    ? {
+        data: null,
+        error: "TEST: There wasn error pulling terms from the database",
+      }
+    : { data: phrases, error: null };
+};
 
 const Fakes = {
   /**
@@ -49,12 +63,21 @@ const Fakes = {
     },
   },
   /**
-   * A database service whose client returns invalid records from the `vocabulary.terms` and `vocabulary.phrases` tables
+   * A database service whose client returns an error querying records from the `vocabulary.phrases` table
    */
-  mixinFakeSupabaseClientReturnsVocabularyErrors: {
+  mixinFakeSupabaseClientReturnsVocabularyPhraseErrors: {
     Database: {
       getClient: () =>
         Mock.createMockDBClient(getStubVocabularyWithPhraseErrors),
+    },
+  },
+  /**
+   * A database service whose client returns an error querying records from the `vocabulary.terms` table
+   */
+  mixinFakeSupabaseClientReturnsVocabularyTermsErrors: {
+    Database: {
+      getClient: () =>
+        Mock.createMockDBClient(getStubVocabularyWithTermsErrors),
     },
   },
   /**
@@ -73,6 +96,15 @@ const Fakes = {
     Database: {
       getClient: () =>
         Object.assign(Mock.createMockDBClient(), mixinFakeRPCWithErrors),
+    },
+  },
+  /**
+   * A database service whose RPC client only returns valid data
+   */
+  mixinFakeBrokenSupabaseClientRPCOnlySuccess: {
+    Database: {
+      getClient: () =>
+        Object.assign(Mock.createMockDBClient(), mixinFakeRPCWithData),
     },
   },
   mixinFakeBrokenSupabaseClientOnlyThrows,

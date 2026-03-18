@@ -53,11 +53,14 @@ export const FakeSearchImpl = {
   },
 };
 
+// TODO: Refactor after the Spies implementation is built
 export const mixinFakeLogger = (() => {
-  const _currentImpl = FakeLoggerImpl();
+  let _currentImpl;
+
   return {
     logger: {
       getLoggerInstance() {
+        _currentImpl = FakeLoggerImpl();
         return _currentImpl;
       },
     },
@@ -65,7 +68,7 @@ export const mixinFakeLogger = (() => {
      * Convenience method for accessing the fake logger implementations call count; necessary to ensure
      * the logger implementation remains hidden
      */
-    get callCount() {
+    getCallCount() {
       return _currentImpl.callCount;
     },
   };
@@ -112,6 +115,40 @@ export const mixinFakeRPCWithErrors = {
       error: {
         message: "TEST: The RPC client returned an error",
       },
+    };
+  },
+};
+
+/**
+ * A fake RPC interface that returns stub data
+ */
+export const mixinFakeRPCWithData = {
+  /**
+   * @returns {object}
+   */
+  async rpc() {
+    return {
+      data: [
+        {
+          id: "2b133e71-6f82-4871-9e93-efeb2e52dfbd",
+          created_at: "2026-03-02 01:04:49.121999+00",
+          name: "Marques De Borba",
+          color: "white",
+          sparkling: false,
+          minerality: 3,
+          description:
+            "The 2022/2023 vintage was marked by a warm winter, dry spring, and hot summer, contributing to an early and balanced grape maturation. The result is a fresh, aromatic, and well-structured white wine, embodying the unique conditions of Alentejo.",
+          acidity: 1,
+          body: "light",
+          tags: null,
+          vintage: "2024",
+          tasting_notes:
+            "Fresh citrus fruits like grapefruit and lemon, with subtle oak toast that complements rather than dominates the fruit. Vibrant freshness and mineral tension, with a smooth texture from extended lees aging. Balanced, elegant, and lingering finish.",
+          producer_id: "ed8a1daa-c669-40ed-a1df-8d1934cc7f9c",
+          price: 2,
+          sweetness: 1,
+        },
+      ],
     };
   },
 };

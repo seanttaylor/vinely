@@ -17,8 +17,10 @@ const {
   mixinFakeBrokenSupabaseClientOnlyThrows,
   mixinFakeBrokenSupabaseClientRPCOnlyThrows,
   mixinFakeBrokenSupabaseClientRPCOnlyErrors,
-  mixinFakeSupabaseClientReturnsVocabularyErrors,
-  mixinFakeSupabaseClientReturnsValid,
+  mixinFakeBrokenSupabaseClientRPCOnlySuccess,
+  mixinFakeSupabaseClientReturnsVocabularyPhraseErrors,
+  mixinFakeSupabaseClientReturnsVocabularyTermsErrors,
+  mixinFakeSupabaseClientReturnsValidVocabulary,
   mixinFakeLogger,
   mixinFakeMiddleware,
 } = TestingTools.Fakes;
@@ -50,197 +52,259 @@ const createSpy = (options = { _callCount: 0 }) => ({
 const getServiceHarness = (service, overrides) =>
   TestingTools.Harness.createServiceHarness(service, overrides);
 
-const DEFAULT_TIMEOUT_MILLIS = 1350;
+const DEFAULT_TIMEOUT_MILLIS = 350;
 
 describe("QueryService", () => {
-  it("Should instantiate QueryService", () => {
-    const { service } = getServiceHarness(
-      QueryService,
-      mixinFakeSupabaseClient
-    );
-    assert.ok(service);
-  });
 
-  it("Should return SERVICE UNAVAILABLE when service is not ready", async () => {
-    const { service } = getServiceHarness(
-      QueryService,
-      mixinFakeSupabaseClient
-    );
-
-    const result = await service.search("red wine");
-
-    assert.equal(service.ready, false);
-    assert.equal(result.isError(), true);
-    assert.equal(result.getError().title, "SERVICE UNAVAILABLE");
-  });
-
-  it("Should FAIL to create the service when an exception is raised during instantiation", (t) => {
-    assert.throws(() => {
+  describe("Service Startup", () => {
+    it("Should instantiate QueryService", () => {
       const { service } = getServiceHarness(
         QueryService,
-        mixinFakeBrokenSupabaseClient
+        mixinFakeSupabaseClient
+      );
+      assert.ok(service);
+    });
+
+    it("Should return SERVICE UNAVAILABLE error on search requests when the service is **NOT** ready", async () => {
+      const { service } = getServiceHarness(
+        QueryService,
+        mixinFakeSupabaseClient
+      );
+
+      const result = await service.search("red wine");
+
+      assert.equal(service.ready, false);
+      assert.equal(result.isError(), true);
+      assert.equal(result.getError().title, "SERVICE UNAVAILABLE");
+    });
+
+    it("Should FAIL to create the service when an exception is raised during instantiation", (t) => {
+      assert.throws(() => {
+        const { service } = getServiceHarness(
+          QueryService,
+          mixinFakeBrokenSupabaseClient
+        );
+      });
+    });
+
+    it("Should FAIL to create the service when the loading vocabulary encounters an exception", async (t) => {
+      const { service } = getServiceHarness(QueryService, {
+        ...mixinFakeBrokenSupabaseClientOnlyThrows,
+        core: { ...mixinFakeLogger },
+      });
+
+      await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
+      assert.equal(mixinFakeLogger.getCallCount().log, 1);
+    });
+
+    it("Should set service as **NOT** ready and log when loading the vocabulary map encounters an error fetching phrases", async (t) => {
+      const { service } = getServiceHarness(QueryService, {
+        ...mixinFakeSupabaseClientReturnsVocabularyPhraseErrors,
+        ...mixinFakeMiddleware,
+        ...mixinEvents,
+        core: { ...mixinFakeLogger },
+      });
+
+      await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
+
+      assert.equal(service.ready, false);
+      assert.equal(mixinFakeLogger.getCallCount().log, 1);
+    });
+
+    it("Should set service as **NOT** ready and log when loading the vocabulary map encounters an error fetching terms", async (t) => {
+      const { service } = getServiceHarness(QueryService, {
+        ...mixinFakeSupabaseClientReturnsVocabularyTermsErrors,
+        ...mixinFakeMiddleware,
+        ...mixinEvents,
+        core: { ...mixinFakeLogger },
+      });
+
+      await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
+
+      assert.equal(service.ready, false);
+      assert.equal(mixinFakeLogger.getCallCount().log, 1);
+    });
+
+    it("Should set service **READY** when loading the vocabulary map completes successfully", async (t) => {
+      const { service } = getServiceHarness(QueryService, {
+        ...mixinFakeSupabaseClientReturnsValidVocabulary,
+        ...mixinFakeMiddleware,
+        ...mixinEvents,
+        core: { ...mixinFakeLogger },
+      });
+
+      await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
+
+      assert.equal(service.ready, true);
+    });
+  });
+
+  describe("Search Strategies", () => {
+    it("Should be able to set the search strategy", async (t) => {
+      const { service } = getServiceHarness(
+        QueryService,
+        mixinFakeSupabaseClient
+      );
+      // We await to allow the QueryService constructor time to load the vocabulary from the database
+      await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
+      /**
+       * @description An empty stub of the vocabulary map compiled by the QueryService constructor
+       * @note This stub satisfies this unit test because the fakeDbClient returns empty lists for
+       * keywords and phrases, verifying the a vocab can be pulled and stored in the service for
+       * use by search strategies
+       */
+      const vocabularyStub = {
+        keywords: {},
+        phrases: {},
+      };
+
+      const mockStrategy = TestingTools.Mock.createMockSearchStrategy();
+      service.setStrategy(mockStrategy);
+
+      assert.ok(mockStrategy.vocabulary !== undefined);
+      assert.deepStrictEqual(mockStrategy.vocabulary, vocabularyStub);
+    });
+
+    it("Should be able to receive an error Result type if the current strategy produces an error", async () => {
+      const strategy = TestingTools.Fakes.Strategy.onSearchStrategyError;
+      const { service } = getServiceHarness(QueryService, {
+        ...mixinFakeSupabaseClient,
+        ...mixinFakeMiddleware,
+        ...mixinEvents,
+      });
+      await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
+
+      const mockStrategy =
+        TestingTools.Mock.createMockSearchStrategy(strategy);
+      service.setStrategy(mockStrategy);
+
+      const result = await service.search("cabernet");
+      assert.equal(result instanceof Result, true);
+
+      assert.ok(result.isError());
+    });
+
+    it("Should be able to receive an error Result type if the current strategy throws an exception", async () => {
+      const strategy = TestingTools.Fakes.Strategy.onSearchStrategyException;
+      const { service } = getServiceHarness(QueryService, {
+        ...mixinFakeSupabaseClient,
+        ...mixinFakeMiddleware,
+        ...mixinEvents,
+      });
+      await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
+
+      const mockStrategy =
+        TestingTools.Mock.createMockSearchStrategy(strategy);
+      service.setStrategy(mockStrategy);
+
+      const result = await service.search("cabernet");
+
+      assert.equal(result instanceof Result, true);
+      assert.ok(result.isError(), true);
+      assert.equal(result.getError() instanceof Problem, true);
+
+      const { title, detail } = result.getError();
+
+      assert.equal(title, "INTERNAL ERROR");
+      assert.equal(
+        detail,
+        "There was an error while executing the search query."
       );
     });
   });
 
-  it("Should FAIL to create the service when the loading vocabulary encounters an exception", async (t) => {
-    const { service } = getServiceHarness(QueryService, {
-      ...mixinFakeBrokenSupabaseClientOnlyThrows,
-      core: { ...mixinFakeLogger },
+  describe("Query Execution", ()=> {
+    it("Should FAIL when the query runner encounters an exception", async () => {
+      const spy = ((options = { _callCount: 0 }) => ({
+        get callCount() {
+          return options._callCount;
+        },
+        get calls() {
+          return {
+            args: options._args,
+          };
+        },
+        /**
+         *
+         * @param {string} queryString
+         * @param {function} queryRunner
+         */
+        onSearchStrategyRun: (queryString, queryRunner) => {
+          options._callCount += 1;
+          options._args = { queryString, queryRunner };
+          return queryRunner(queryString, "ATestStrategy");
+        },
+      }))();
+      const { service } = getServiceHarness(QueryService, {
+        ...mixinFakeBrokenSupabaseClientRPCOnlyThrows,
+        ...mixinFakeMiddleware,
+        ...mixinEvents,
+      });
+      await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
+
+      const mockStrategy = TestingTools.Mock.createMockSearchStrategy(
+        spy.onSearchStrategyRun
+      );
+      service.setStrategy(mockStrategy);
+
+      const result = await service.search("cheap minerally whites");
+
+      assert.equal(spy.callCount, 1);
+      assert.equal(typeof spy.calls.args.queryString, "string");
+      assert.equal(typeof spy.calls.args.queryRunner, "function");
+
+      assert.equal(result instanceof Result, true);
+      assert.ok(result.isError());
     });
 
-    await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
-    assert.equal(mixinFakeLogger.callCount.log, 1);
-  });
+    it("Should FAIL when the query runner returns an error", async () => {
+      const spy = createSpy();
+      const { service } = getServiceHarness(QueryService, {
+        ...mixinFakeBrokenSupabaseClientRPCOnlyErrors,
+        ...mixinFakeMiddleware,
+        ...mixinEvents,
+      });
+      await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
 
-  it("Should be able to set the search strategy", async (t) => {
-    const { service } = getServiceHarness(
-      QueryService,
-      mixinFakeSupabaseClient
-    );
-    // We await to allow the QueryService constructor time to load the vocabulary from the database
-    await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
-    /**
-     * @description An empty stub of the vocabulary map compiled by the QueryService constructor
-     * @note This stub satisfies this unit test because the fakeDbClient returns empty lists for
-     * keywords and phrases, verifying the a vocab can be pulled and stored in the service for
-     * use by search strategies
-     */
-    const vocabularyStub = {
-      keywords: {},
-      phrases: {},
-    };
+      const mockStrategy = TestingTools.Mock.createMockSearchStrategy(
+        spy.onSearchStrategyRun
+      );
+      service.setStrategy(mockStrategy);
 
-    const mockStrategy = TestingTools.Mock.createMockSearchStrategy();
-    service.setStrategy(mockStrategy);
+      const result = await service.search("cheap minerally whites");
 
-    assert.ok(mockStrategy.vocabulary !== undefined);
-    assert.deepStrictEqual(mockStrategy.vocabulary, vocabularyStub);
-  });
+      assert.equal(spy.callCount, 1);
+      assert.equal(typeof spy.calls.args.queryString, "string");
+      assert.equal(typeof spy.calls.args.queryRunner, "function");
 
-  it("Should be able to receive an error Result type if the current strategy produces an error", async () => {
-    const strategy = TestingTools.Fakes.Strategy.onSearchStrategyError;
-    const { service } = getServiceHarness(QueryService, {
-      ...mixinFakeSupabaseClient,
-      ...mixinFakeMiddleware,
-      ...mixinEvents,
-    });
-    await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
-
-    const mockStrategy = TestingTools.Mock.createMockSearchStrategy(strategy);
-    service.setStrategy(mockStrategy);
-
-    const result = await service.search("cabernet");
-    assert.equal(result instanceof Result, true);
-
-    assert.ok(result.isError());
-  });
-
-  it("Should be able to receive an error Result type if the current strategy throws an exception", async () => {
-    const strategy = TestingTools.Fakes.Strategy.onSearchStrategyException;
-    const { service } = getServiceHarness(QueryService, {
-      ...mixinFakeSupabaseClient,
-      ...mixinFakeMiddleware,
-      ...mixinEvents,
-    });
-    await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
-
-    const mockStrategy = TestingTools.Mock.createMockSearchStrategy(strategy);
-    service.setStrategy(mockStrategy);
-
-    const result = await service.search("cabernet");
-
-    assert.equal(result instanceof Result, true);
-    assert.ok(result.isError(), true);
-    assert.equal(result.getError() instanceof Problem, true);
-
-    const { title, detail } = result.getError();
-
-    assert.equal(title, "INTERNAL ERROR");
-    assert.equal(
-      detail,
-      "There was an error while executing the search query."
-    );
-  });
-
-  it("Should FAIL when the query runner encounters an exception", async () => {
-    const spy = ((options = { _callCount: 0 }) => ({
-      get callCount() {
-        return options._callCount;
-      },
-      get calls() {
-        return {
-          args: options._args,
-        };
-      },
-      /**
-       *
-       * @param {string} queryString
-       * @param {function} queryRunner
-       */
-      onSearchStrategyRun: (queryString, queryRunner) => {
-        options._callCount += 1;
-        options._args = { queryString, queryRunner };
-        return queryRunner(queryString, "ATestStrategy");
-      },
-    }))();
-    const { service } = getServiceHarness(QueryService, {
-      ...mixinFakeBrokenSupabaseClientRPCOnlyThrows,
-      ...mixinFakeMiddleware,
-      ...mixinEvents,
-    });
-    await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
-
-    const mockStrategy = TestingTools.Mock.createMockSearchStrategy(
-      spy.onSearchStrategyRun
-    );
-    service.setStrategy(mockStrategy);
-
-    const result = await service.search("cheap minerally whites");
-
-    assert.equal(spy.callCount, 1);
-    assert.equal(typeof spy.calls.args.queryString, "string");
-    assert.equal(typeof spy.calls.args.queryRunner, "function");
-
-    assert.equal(result instanceof Result, true);
-    assert.ok(result.isError());
-  });
-
-  it("Should FAIL when the query runner returns an error", async () => {
-    const spy = createSpy();
-    const { service } = getServiceHarness(QueryService, {
-      ...mixinFakeBrokenSupabaseClientRPCOnlyErrors,
-      ...mixinFakeMiddleware,
-      ...mixinEvents,
-    });
-    await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
-
-    const mockStrategy = TestingTools.Mock.createMockSearchStrategy(
-      spy.onSearchStrategyRun
-    );
-    service.setStrategy(mockStrategy);
-
-    const result = await service.search("cheap minerally whites");
-
-    assert.equal(spy.callCount, 1);
-    assert.equal(typeof spy.calls.args.queryString, "string");
-    assert.equal(typeof spy.calls.args.queryRunner, "function");
-
-    assert.equal(result instanceof Result, true);
-    assert.ok(result.isError());
-  });
-
-  it("Should FAIL to create the service and log when loading the vocabulary map encounters an error", async (t) => {
-    const { service } = getServiceHarness(QueryService, {
-      ...mixinFakeSupabaseClientReturnsVocabularyErrors,
-      ...mixinFakeMiddleware,
-      ...mixinEvents,
-      core: { ...mixinFakeLogger },
+      assert.equal(result instanceof Result, true);
+      assert.ok(result.isError());
     });
 
-    await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
+    it("Should be able to get a Result with data when the query runner returns successfully", async () => {
+      const spy = createSpy();
+      const { service } = getServiceHarness(QueryService, {
+        ...mixinFakeBrokenSupabaseClientRPCOnlySuccess,
+        ...mixinFakeMiddleware,
+        ...mixinEvents,
+      });
+      await TestingTools.Time.delay(DEFAULT_TIMEOUT_MILLIS);
 
-    assert.equal(mixinFakeLogger.callCount.log, 1);
+      const mockStrategy = TestingTools.Mock.createMockSearchStrategy(
+        spy.onSearchStrategyRun
+      );
+      service.setStrategy(mockStrategy);
+
+      const result = await service.search("cheap minerally whites");
+
+      assert.equal(spy.callCount, 1);
+      assert.equal(typeof spy.calls.args.queryString, "string");
+      assert.equal(typeof spy.calls.args.queryRunner, "function");
+
+      assert.equal(result instanceof Result, true);
+      assert.ok(result.isOk());
+      assert.equal(Array.isArray(result.getValue()), true);
+    });
   });
   //
 });
