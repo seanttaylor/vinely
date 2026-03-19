@@ -1,3 +1,4 @@
+/* node:coverage disable */
 
 /**
  * A naive spy implementation for verifying and counting logger method calls
@@ -17,7 +18,7 @@ const FakeLoggerImpl = (options = { _callCount: { log: 0, error: 0 } }) => {
 };
 
 /**
- * Application database implementation that only raises exceptions on query operations
+ * Application database client implementation that only raises exceptions on query operations
  */
 const FakeDatabaseImpl = {
   onQueryException: {

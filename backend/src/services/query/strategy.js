@@ -181,6 +181,7 @@ class SearchStrategy {
 
   constructor() {}
 
+  /* node:coverage ignore next 3 */
   search() {
     throw new Error("Missing implementation.");
   }
@@ -199,6 +200,7 @@ class SearchStrategy {
 }
 
 export class ProductLookupStrategy extends SearchStrategy {
+  /* node:coverage ignore next 3 */
   constructor() {
     super();
   }
@@ -209,10 +211,6 @@ export class ProductLookupStrategy extends SearchStrategy {
    * @returns {Result<Object | Problem>}
    */
   search(queryString) {
-    throw new Error("Some random error");
-    return Result.ok({
-      queryResult: "Some random result",
-    });
   }
 }
 
