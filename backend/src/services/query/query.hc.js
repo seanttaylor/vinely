@@ -65,7 +65,7 @@ const COERCED_TYPES = {
  */
 const SQL_FUNC = Object.freeze({
   ProductDiscoveryStrategy: "search_wines_product_discovery",
-  ProductLookUpStrategy: "search_wines_product_lookup",
+  ProductLookupStrategy: "search_wines_product_lookup",
 });
 
 /**
@@ -200,6 +200,10 @@ export default class QueryService extends ApplicationService {
         );
       }
 
+      /* TODO: Run a tap into the Result before returning so we can identify and
+       track search queries that don't return results
+       e.g. Result.tap(pushQueryAndStrategyNameToTelemetryDatabase);
+      */
       return Result.ok(!data ? [] : data);
     } catch (ex) {
       // TODO: Generalize exception capture and telemetry push to keep things DRY

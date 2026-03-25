@@ -210,7 +210,20 @@ export class ProductLookupStrategy extends SearchStrategy {
    * @param {String} queryString - the raw search query from the client
    * @returns {Result<Object | Problem>}
    */
-  search(queryString) {
+  search(queryString, queryRunner) {
+     const normalizedQueryResult = Result.ok(queryString)
+      .map(queryTools.normalize)
+    
+    if (normalizedQueryResult.isError()) {
+      // TODO: Find a way to get the centralized logger into strategies
+      console.error(`INTERNAL ERROR (ProductLookupStrategy): **EXCEPTION ENCOUNTERED** while executing the search query. See details -> ${sqlResult.getError()}`);
+      return Result.error(Problem.of({ 
+        title: "INTERNAL ERROR",
+        detail: "There was an error executing the search query." 
+      }));
+    }
+
+    return queryRunner(normalizedQueryResult.value, this.constructor.name);
   }
 }
 
