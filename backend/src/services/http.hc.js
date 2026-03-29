@@ -77,6 +77,7 @@ export default class HTTPService extends ApplicationService {
       app.use(this.#sandbox.my.RouteService.Query);
       app.use(this.#sandbox.my.RouteService.Wine);
       app.use(this.#sandbox.my.RouteService.Status);
+      app.use(this.#sandbox.my.RouteService.TaskService);
       // app.use(this.#sandbox.my.RouteService.Subscription);
 
       // Rate-limited routes
@@ -115,8 +116,8 @@ export default class HTTPService extends ApplicationService {
         );
 
         res.status(status).send([Problem.of({
-          title: `There was an error processing the request. See detail.`,
-          detail: `${err.message}`
+          title: "INTERNAL ERROR",
+          detail: `There was an error processing the request.`
         })]);
       });
 

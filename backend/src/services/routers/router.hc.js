@@ -2,6 +2,7 @@ import { ApplicationService } from "../../../system.js";
 import { ProducerRouter } from "./producer.js";
 import { QueryRouter } from "./query.js";
 import { StatusRouter } from "./status.js";
+import { TaskRouter } from "./task.js";
 
 import { WineRouter } from "./wine.js";
 
@@ -29,6 +30,7 @@ export default class RouteService extends ApplicationService {
     const ProducerService = this.#sandbox.my.ProducerService;
     const QueryService = this.#sandbox.my.QueryService;
     const WineService = this.#sandbox.my.WineService;
+    const TaskService = this.#sandbox.my.TaskService;
     // const config = this.#sandbox.my.Config;
     // const cache = this.#sandbox.my.Cache;
     const logger = this.#sandbox.core.logger.getLoggerInstance();
@@ -36,6 +38,7 @@ export default class RouteService extends ApplicationService {
     this.Producer = new ProducerRouter({ Events, MiddlewareProvider, ProducerService });
     this.Query = new QueryRouter({ Events, MiddlewareProvider, QueryService });
     this.Status = new StatusRouter(/*this.#sandbox.my.MiddlewareProvider*/);
+    this.TaskService = new TaskRouter({ Events, MiddlewareProvider, TaskService });
     this.Wine = new WineRouter({ Events, MiddlewareProvider, WineService });
     //this.Events = new EventsRouter({ MiddlewareProvider, events, logger });
   }

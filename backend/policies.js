@@ -15,6 +15,7 @@ export const policies = {
       "MiddlewareProvider",
       "ProducerService",
       "QueryService",
+      "TaskService",
       "WineService",
     ],
   },
