@@ -47,16 +47,18 @@ class TaskProgressEvent {
   #status;
   #timestamp;
   #progress;
+  #rel;
 
   /**
    * @param {TaskProgressEventOptions} options
    */
-  constructor({ message, status, progress = null }) {
-    this.#id = generateUUID();
+  constructor({ message, status, rel, progress = null }) {
+    this.#id = crypto.randomUUID();
     this.#message = message;
     this.#status = status;
     this.#timestamp = new Date().toISOString();
     this.#progress = progress;
+    this.#rel = rel;
   }
 
   get id() {
@@ -85,6 +87,7 @@ class TaskProgressEvent {
       message: this.#message,
       status: this.#status,
       timestamp: this.#timestamp,
+      rel: this.#rel
     };
   }
 }
@@ -256,6 +259,7 @@ export class Task {
       new TaskProgressEvent({
         message,
         status,
+        rel: this.#taskName
       })
     );
   }
@@ -271,6 +275,7 @@ export class Task {
         new TaskProgressEvent({
           message: "We're live!",
           status: STATUS.RUNNING,
+          rel: this.#taskName
         })
       );
 
@@ -319,6 +324,7 @@ export class Task {
       new TaskProgressEvent({
         message,
         status: STATUS.STOPPED,
+        rel: this.#taskName
       })
     );
   }

@@ -47,7 +47,6 @@ export class TaskRouter {
     
     router.post("/tasks", async (req, res) => {
       try { 
-        throw new Error('what...?')
         const taskResult = TaskService.createTask(async (input, signal, taskHandle) => {
           console.log(`running task(${taskHandle.name})`);
         }, "tasks.test.noop");
@@ -83,9 +82,120 @@ export class TaskRouter {
     /**
      * 
      */
-    router.get("/", (req, res) => {
-      res.status(204).send();
+    router.get("/tasks", async (req, res) => {
+      const { success: onReqSuccess, error: onReqError } = HTTPResponse.with(res);
+      const taskListResult = Result.ok(TaskService.tasks)
+      .match({ok: onReqSuccess, err: onReqError});
     });
+
+    /**
+     * 
+     */
+    router.get("/tasks/:id", async (req, res) => {
+      try {
+      const { id } = req.params;
+      const { success: onReqSuccess, error: onReqError } = HTTPResponse.with(res);
+
+      const taskResult = TaskService.getTask(id);
+
+      taskResult.match({ ok: onReqSuccess, err: onReqError }); 
+      } catch(ex) {
+        const { error: onQueryError } = HTTPResponse.with(res); 
+        
+        Result.ok(MiddlewareProvider.Telemetry.createExceptionEvent({
+          service: "TaskService",
+          ex,
+        }))
+        .tap((exceptionEvent) => {
+          console.error(`INTERNAL_ERROR (TaskService): **EXCEPTION ENCOUNTERED** while creating a task. This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionEvent.detail.header.id}). See details -> ${ex.message}`);
+          Events.dispatchEvent(exceptionEvent);
+        })
+        .map((exceptionEvent) => Result.error(Problem.of({
+            title: "INTERNAL ERROR",
+            detail: "There was an error while creating or executing a task.",
+            instance: `runtime_exceptions/task_router/${exceptionEvent.detail.header.id}`,
+          })))
+        .match({
+          err: onQueryError 
+        });
+      }
+
+    });
+
+    /**
+     * 
+     */
+    router.get("/tasks/:id/timeline", async (req, res) => {
+      try {
+      const { id } = req.params;
+      const { success: onReqSuccess, error: onReqError } = HTTPResponse.with(res);
+      const taskResult = TaskService.getTask(id).map(([t])=> t.log);
+
+      taskResult.match({ ok: onReqSuccess, err: onReqError }); 
+      } catch(ex) {
+        const { error: onQueryError } = HTTPResponse.with(res); 
+        
+        Result.ok(MiddlewareProvider.Telemetry.createExceptionEvent({
+          service: "TaskService",
+          ex,
+        }))
+        .tap((exceptionEvent) => {
+          console.error(`INTERNAL_ERROR (TaskService): **EXCEPTION ENCOUNTERED** while creating a task. This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionEvent.detail.header.id}). See details -> ${ex.message}`);
+          Events.dispatchEvent(exceptionEvent);
+        })
+        .map((exceptionEvent) => Result.error(Problem.of({
+            title: "INTERNAL ERROR",
+            detail: "There was an error while retrieving a task.",
+            instance: `runtime_exceptions/task_router/${exceptionEvent.detail.header.id}`,
+          })))
+        .match({
+          err: onQueryError 
+        });
+      }
+
+    });
+
+
+    /**
+     * 
+     */
+    router.put("/tasks/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { success: onReqSuccess, error: onReqError } = HTTPResponse.with(res);
+        const taskResult = TaskService.getTask(id);
+
+        const myTask = taskResult.map(([t]) => t.start(req.body.payload))
+        .match({
+          ok:()=> onReqSuccess([], 204), 
+          err: (e)=> onReqError(Problem.of({ 
+            title: "INTERNAL ERROR", 
+            detail: `There was an error starting the task (${req.params.id})` 
+          })) 
+        });
+      } catch(ex) {
+        const { error: onQueryError } = HTTPResponse.with(res); 
+        
+        Result.ok(MiddlewareProvider.Telemetry.createExceptionEvent({
+          service: "TaskService",
+          ex,
+        }))
+        .tap((exceptionEvent) => {
+          console.error(`INTERNAL_ERROR (TaskService): **EXCEPTION ENCOUNTERED** while creating a task. This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionEvent.detail.header.id}). See details -> ${ex.message}`);
+          Events.dispatchEvent(exceptionEvent);
+        })
+        .map((exceptionEvent) => Result.error(Problem.of({
+            title: "INTERNAL ERROR",
+            detail: "There was an error while executing a task.",
+            instance: `runtime_exceptions/task_router/${exceptionEvent.detail.header.id}`,
+          })))
+        .match({
+          err: onQueryError 
+        });
+      }
+    });
+
+    
 
     return router;
   }

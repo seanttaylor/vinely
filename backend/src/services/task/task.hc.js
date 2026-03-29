@@ -58,7 +58,16 @@ export default class TaskService extends ApplicationService {
       this.#taskRegistry[t.id] = t;
 
       return Result.ok([t]);
-    }     
+    }
+    
+    /**
+     * 
+     * @param {string} id 
+     * @returns {Result<Task>}
+     */
+    getTask(id) {
+        return Result.ok([this.#taskRegistry[id]]);
+    }   
 
     /**
      * Returns all registered tasks; this includes tasks in 
