@@ -1,6 +1,15 @@
 import express from "express";
+import multer from "multer";
+
 import { Result } from "../../types/result.js";
 import { Problem } from "../../types/problem.js";
+
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+  }, 
+});
 
 const HTTPResponse = {
   /**
@@ -45,17 +54,35 @@ export class TaskRouter {
   constructor({ Events, TaskService, MiddlewareProvider }) {
     const router = express.Router();
     
-    router.post("/tasks", async (req, res) => {
+    router.post("/tasks", upload.single("file"), MiddlewareProvider.TaskService.normalizeMultipart, MiddlewareProvider.Validation.validateRequestBody, async (req, res) => {
       try { 
-        const taskResult = TaskService.createTask(async (input, signal, taskHandle) => {
-          console.log(`running task(${taskHandle.name})`);
-        }, "tasks.test.noop");
+        const taskName = req.body.name;
+        const taskResult = TaskService.createTask(taskName);
+        const { payload } = req.body;
 
         const { success: onReqSuccess, error: onReqError } = HTTPResponse.with(res);
+        
         taskResult.match({
           ok: (data) => onReqSuccess(data, 201),
           err: onReqError,
         });
+
+        /******** TASK LIFECYCLE MANAGEMENT *********/
+        if (req.body.autoStart) {
+          taskResult.tap(([t]) => {
+            t.start(payload);
+          });
+        }
+        
+        if (req.body.scheduledAt) {
+          const timeout =  new Date(req.body.scheduledAt).getTime() - Date.now();
+
+          setTimeout(() => {
+            taskResult.tap(([t]) => {
+              t.start(payload);
+            });
+          }, timeout);
+        }
 
       } catch(ex) {
         const { error: onQueryError } = HTTPResponse.with(res); 

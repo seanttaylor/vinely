@@ -46,6 +46,7 @@ const Mixin = {
         "QueryService",
         "RouteService",
         "TaskService",
+        "TaskProvider",
         "WineService"
       ],
       async (hc) => {

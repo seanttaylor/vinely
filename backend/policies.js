@@ -22,4 +22,7 @@ export const policies = {
   NOOPService: {
     allowedAPIs: ["WineService"],
   },
+  TaskService: {
+    allowedAPIs: ["TaskProvider"]
+  }
 };

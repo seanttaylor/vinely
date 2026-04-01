@@ -7,13 +7,15 @@ import { Problem } from "../types/problem.js";
 import searchQueryParamSchema from "../schemas/search-query-params.json" with { type: "json" };
 import producerSchema from "../schemas/producer.json" with { type: "json" };
 import wineSchema from "../schemas/wine.json" with { type: "json" };
+import taskCreateSchema from "../schemas/task.json" with { type: "json" };
 
 /**
  * @description Maps API endpoints names to their corresponding JSON Schema documents
  */
 const RESOURCE_SCHEMA_MAP = Object.freeze({
   "/wines": wineSchema,
-  "/producers": producerSchema
+  "/producers": producerSchema,
+  "/tasks": taskCreateSchema
 });
 
 const ajv = new Ajv({allErrors: true});
@@ -138,6 +140,54 @@ export default class MiddlewareProvider {
       } catch(ex) {
         this.#logger.error(
           `INTERNAL_ERROR (MiddlewareProvider.QueryService): **EXCEPTION ENCOUNTERED** while validating query params on (${req.path}). See details -> ${ex.message}`
+        );
+        next(ex);
+      }
+    }
+  };
+
+  TaskService = {
+    normalizeMultipart: (req, res, next) => {
+      try {
+        // Only care about multipart requests
+        if (!req.is("multipart/form-data")) {
+          return next();
+        }
+
+        const normalizedBody = { ...req.body };    
+        if (normalizedBody.autoStart) {
+          normalizedBody.autoStart = normalizedBody.autoStart === "true";
+        }
+
+        // Parse payload JSON if present
+        if (normalizedBody.payload) {
+          try {
+            normalizedBody.payload = JSON.parse(normalizedBody.payload);
+          } catch (ex) {
+            this.#logger.error(`INTERNAL ERROR (MiddlewareProvider.TaskService): **EXCEPTION ENCOUNTERED** while normalizing the payload of a multipart/form-data request. See details -> ${ex.message} `);
+            return res.status(400).json([
+              Problem.of({
+                title: "BAD REQUEST",
+                detail: "There was an error processing the request. Ensure request payload is valid. See docs",
+              }),
+            ]);
+          }
+        } else {
+          normalizedBody.payload = {};
+        }
+
+        // Attach file into payload (optional but powerful)
+        if (req.file) {
+          normalizedBody.payload.file = req.file;
+        }
+
+        // Overwrite req.body with normalized version
+        req.body = normalizedBody;
+
+        next();
+      } catch (ex) {
+        this.#logger.error(
+          `INTERNAL_ERROR (MiddlewareProvider.TaskService): **EXCEPTION ENCOUNTERED** on (${req.path}). See details -> ${ex.message}`
         );
         next(ex);
       }

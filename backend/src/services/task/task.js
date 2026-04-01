@@ -3,7 +3,7 @@ import pkg from 'randanimal';
 import { STATUS } from "../../interfaces.js";
 
 // Workaround for the package since it does not appear to support ES modules (e.g. it is written in CommonJS)
-const { randanimalSync} = pkg;
+const { randanimalSync } = pkg;
 
 /**
  * @typedef {Object} TaskProgressEventOptions
@@ -17,6 +17,23 @@ const { randanimalSync} = pkg;
  * @typedef {Object} TaskHandleProgressOptions
  * @property {string} message - Human-readable description of the current progress state.
  * @property {string} status - The task status associated with this update.
+ */
+
+/**
+ * @typedef {Object} TaskFile
+ * @property {string} fieldname
+ * @property {string} originalname
+ * @property {string} encoding
+ * @property {string} mimetype
+ * @property {Buffer} buffer
+ * @property {number} size
+ */
+
+/**
+ * @typedef {Object} TaskInput
+ * @property {string} [schema] - Optional schema URI for validating or interpreting the payload
+ * @property {Object} body - The primary payload for the task (always present if input is provided)
+ * @property {TaskFile} [file] - Optional file attached to the task (in-memory buffer)
  */
 
 /**
@@ -266,7 +283,7 @@ export class Task {
 
   /**
    * Starts a task run
-   * @param {Any} input - input consumed by the task
+   * @param {TaskInput} [input] - Optional task input
    */
   async start(input) {
     try {
@@ -298,7 +315,7 @@ export class Task {
           console.error(
             `INTERNAL ERROR (Task): **UNCAUGHT EXCEPTION ENCOUNTERED** while executing task (${
               this.#taskName
-            }). See details -> ${ex.message}`
+            }) as instance (${this.#instanceName}). See details -> ${ex.message}`
           );
         }
       }, 0);
