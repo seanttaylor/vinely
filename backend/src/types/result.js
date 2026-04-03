@@ -10,6 +10,9 @@ export class Result {
    * @returns {Result<T, null>}
    */
   static ok(value) {
+    if (value instanceof Result) {
+      return value; // 🔥 unwrap instead of nesting
+    }
     return new Result(true, value, null, "success");
   }
 
@@ -21,6 +24,13 @@ export class Result {
    */
   static error(error, type = "err") {
     return new Result(false, null, error, type);
+  }
+  /**
+   * @param {Result <T,E>} value
+   * @returns {Result<null, E>}
+   */
+  static from(value) {
+    return value instanceof Result ? value : Result.ok(value);
   }
 
   /**
@@ -121,7 +131,8 @@ export class Result {
       if (typeof handlers.ok === "function") {
         return handlers.ok(this.value);
       }
-      throw new Error('Result.match requires an "ok" handler');
+      return this.value;
+      //throw new Error('Result.match requires an "ok" handler');
     }
 
     const handler = handlers[this.type] || handlers.err;

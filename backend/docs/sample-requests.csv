@@ -5,3 +5,4 @@ url,method,description
 "http://localhost:8080/wines",POST,"creates wine records"
 "http://localhost:8080/producers",POST,"creates wine producer records"
 "http://localhost:8080/search?q=pinot%20noir\&qtype=product_lookup",GET,"runs a product search query a specified wine"
+"http://localhost:8080/tasks",POST,"creates a new task"

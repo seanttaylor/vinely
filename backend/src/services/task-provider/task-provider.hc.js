@@ -28,6 +28,7 @@ const normalizeWines = (input) => {
 export default class TaskProvider extends ApplicationService {
   static service = "TaskProvider";
 
+  #dbClient;
   #logger;
   #sandbox;
 
@@ -38,8 +39,9 @@ export default class TaskProvider extends ApplicationService {
     super();
 
     try {
-        this.#sandbox = sandbox;
-        this.#logger = sandbox.core.logger.getLoggerInstance();
+      this.#sandbox = sandbox;
+      this.#logger = sandbox.core.logger.getLoggerInstance();
+      this.#dbClient = sandbox.my.Database.getClient();
     } catch (ex) {
       this.#logger.error(
         `INTERNAL_ERROR (TaskProvider): Exception encountered while starting the service. See details -> ${ex.message}`
@@ -47,6 +49,36 @@ export default class TaskProvider extends ApplicationService {
     }
   }
 
+  /**
+   * @description Methods encapsulating discrete database operations; ensures
+   * running tasks do not have access the entire databse API surface
+   */
+  #DB_TASKS = {
+    /**
+     * @param {object[]} wineList - list of validated wines to push to the database
+     * @returns {object[]}
+     */
+    bulkImportWines: async (wineList) => {
+      try {
+        throw new Error('Uh oh')
+        const { data, error } = await this.#dbClient.from('wines').insert(wineList).select();
+
+        if (error) {
+          return Result.error(error.message);
+        }
+
+        return data.length ? data : [];
+        
+      } catch(ex) {
+        this.#logger.error(`INTERNAL ERROR (TaskProvider): **EXCEPTION ENCOUNTERED** while bulk importing wines. See details => ${ex.message}`);
+        return Result.error("There was an error");
+      }
+    }
+  }
+
+  /**
+   * @description Namespaced system tasks associated with testing
+   */
   TEST = {
     /**
      * @param {object} input
@@ -61,6 +93,15 @@ export default class TaskProvider extends ApplicationService {
         const records = parse(csvString, CONFIG);
         const normalizedResult = Result.ok(records)
         .map(normalizeWines)
+        .match({ err: (e) => {
+          taskHandle.stop(`Stopped due to exception. See details -> ${e}`);
+        }});
+
+        const finalResult = Result.from(await this.#DB_TASKS.bulkImportWines(normalizedResult))
+        .match({ err: (e) => {
+          taskHandle.stop(`Stopped due to exception. See details -> ${e}`);
+        }});
+
       } catch(ex) {
         this.#logger.error(`INTERNAL ERROR (TaskProvider): **EXCEPTION ENCOUNTERED** while running task (${taskHandle.name}) as instance (${taskHandle.instance}). Task will be **STOPPED** See details -> ${ex.message}`);
         taskHandle.stop(ex.message);
