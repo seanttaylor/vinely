@@ -10,7 +10,7 @@
   "properties": {
     "name": {
       "type": "string",
-      "enum": ["tasks.test.noop"],
+      "enum": ["tasks.wines.bulk_import", "tasks.test.noop"],
       "description": "Identifier of a predefined task"
     },
 
@@ -46,6 +46,26 @@
 
     "attachmentName": {
       "type": "string"
+    },
+
+    "workflow": {
+      "type": "string",
+      "description": "Optional identifier for a series of related tasks"
+    },
+
+    "executionMode": {
+      "type": "string",
+      "enum": ["serial", "parallel"],
+      "description": "Indicates how a series of task should be executed"
+    },
+
+    "nextTasks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
     }
   },
 

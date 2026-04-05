@@ -24,9 +24,10 @@ const HTTPResponse = {
        * @returns {void}
        */
       success(data, statusCode=200) {
+
         res.set("X-Total-Count", data.length);
         res.status(statusCode);
-        res.json(data);
+        res.json(...data);
       },
       /**
        * @param {Problem} error
@@ -57,10 +58,9 @@ export class TaskRouter {
     router.post("/tasks", upload.single("file"), MiddlewareProvider.TaskService.normalizeMultipart, MiddlewareProvider.Validation.validateRequestBody, async (req, res) => {
       try { 
         const taskName = req.body.name;
-        const taskResult = TaskService.createTask(taskName);
-        const { payload } = req.body;
-
+        const { payload, ...runtimeTaskConfig } = req.body;
         const { success: onReqSuccess, error: onReqError } = HTTPResponse.with(res);
+        const taskResult = TaskService.createTask(taskName, runtimeTaskConfig);
         
         taskResult.match({
           ok: (data) => onReqSuccess(data, 201),

@@ -1,4 +1,3 @@
-import { parse } from "csv-parse/sync";
 import { ApplicationService } from "../../../system.js";
 import { Result } from "../../types/result.js";
 import { Task } from "./task.js";
@@ -8,7 +7,9 @@ import { Task } from "./task.js";
  * @readonly
  */
 const TASK_TYPES = Object.freeze({
-  "tasks.test.noop": "TEST"
+  "tasks.wines.bulk_import": "INGEST",
+  "tasks.test.noop": "TEST",
+  "tasks.test.noop_2": "TEST"
 });
 
 /**
@@ -62,23 +63,64 @@ export default class TaskService extends ApplicationService {
    * the standard task contract:
    * `(input, abortSignal, taskHandle) => Promise<void>`
    * @param {string} taskName Human-readable name used for identification and logging.
+   * @param {object} runtimeTaskConfig configuratin that influences task behavior during execution
    * @param {function(any, AbortSignal, TaskHandle): Promise<void>} [taskFn] an optional async function containing the task's execution logic.
    * @returns {Result<Task | Problem>} newly created and registered Task instance
    */
-  createTask(taskName, taskFn) {
-    let t;
+  createTask(taskName, runtimeTaskConfig, taskFn) {
+    let taskInstances;
 
-    if (!taskFn) {
-      const taskType = TASK_TYPES[taskName];
-      const cachedTaskFn = this.#TaskProvider[taskType][taskName];
-      t = new Task(cachedTaskFn, taskName);
-    } else {
-      t = new Task(taskFn, taskName);
+    if (taskFn) {
+      taskInstances = [new Task(taskFn, taskName)];
+      this.#taskRegistry[t.id] = t;
+      return Result.ok(t);
     }
 
-    this.#taskRegistry[t.id] = t;
+    const nextTasks = runtimeTaskConfig.nextTasks || [];
+    const requestedTasks = [ taskName, ...nextTasks ];
 
-    return Result.ok([t]);
+    taskInstances = requestedTasks.map((tn) => {
+      const taskType = TASK_TYPES[tn];
+      const myTask = new Task(this.#TaskProvider[taskType][tn], tn);
+      this.#taskRegistry[myTask.id] = myTask;
+      return myTask;
+    });
+
+    return Result.ok(taskInstances).map((instances) => {
+      // The task request is a workflow
+      if (instances.length > 1) {
+        const [initialTask, ...remaining] = instances;
+
+        //Workflow.from(initialTask, remainingTasks);
+        Object.assign(initialTask, { 
+          start: async (input) => {
+            const result = await Task.prototype.start.call(initialTask, input);
+
+            await remaining.reduce(async (res, currentTask) => {
+              try {
+                return await currentTask.start(res);
+              } catch(ex) {
+                this.#logger.error(`INTERNAL ERROR (Task): **EXCEPTION ENCOUNTED** while running task $${ex.message}`);
+              }
+            }, result);
+          },
+          // Customized `toJSON` method to ensure *ALL* tasks created in a
+          // workflow are surfaced when returning API responses or logging
+          // the initial task of a workflow
+          toJSON() {
+            return instances.map(task => ({
+              id: task.id,
+              createdAt: task.createdAt,
+              instance: task.instance,
+              name: task.name, 
+              status: task.status
+            }));
+          }
+        });
+        return [initialTask];
+      }
+      return instances;
+    })
   }
     
   /**

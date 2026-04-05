@@ -8,9 +8,9 @@ import { z } from "zod";
  * @returns {Object} a value object representing data about a single wine
  */
 const WineZodSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().optional(),
 
-  created_at: z.string(), // keep as string; DB can cast to timestamptz
+  created_at: z.string().optional(), // keep as string; DB can cast to timestamptz
 
   name: z.string().min(1).transform(s => s.trim()),
 

@@ -301,24 +301,30 @@ export class Task {
           return;
         }
 
-        await this.#taskFn(
+        return await this.#taskFn(
           input,
           this.#taskController.signal,
           this.#taskHandle
         );
       };
 
-      setTimeout(async () => {
-        try {
-          await runTask();
-        } catch (ex) {
-          console.error(
-            `INTERNAL ERROR (Task): **UNCAUGHT EXCEPTION ENCOUNTERED** while executing task (${
-              this.#taskName
-            }) as instance (${this.#instanceName}). See details -> ${ex.message}`
-          );
-        }
-      }, 0);
+      const p = new Promise((resolve) => {
+        setTimeout(async () => {
+          try {
+            const result = await runTask();
+            resolve(result);
+          } catch (ex) {
+            console.error(
+              `INTERNAL ERROR (Task): **UNCAUGHT EXCEPTION ENCOUNTERED** while executing task (${
+                this.#taskName
+              }) as instance (${this.#instanceName}). See details -> ${ex.message}`
+            );
+          }
+        }, 0);
+      });
+
+
+      return p;
     } catch (ex) {
       console.error(
         `INTERNAL ERROR (Task): **EXCEPTION ENCOUNTERED** while starting the task. See details -> ${ex.message}`
