@@ -210,14 +210,29 @@ export class Task {
   #status = STATUS.PAUSED;
   #taskController = new AbortController();
   #timeline = [];
+  #rel;
   #taskHandle;
   #taskFn;
   #taskName;
+  #workflowId;
 
-  constructor(taskFn, taskName) {
+  /**
+   * 
+   * @param {function} taskFn 
+   * @param {string} taskName 
+   * @param {object} [workflowConfig]
+   */
+  constructor(taskFn, taskName, workflowConfig={}) {
     this.#taskFn = taskFn;
     this.#taskName = taskName;
     this.#taskHandle = new TaskHandle(this.#onTaskProgress.bind(this), this);
+
+    // We **only** assign a workflowId if the client has specified 
+    // the task is part of a workflow
+    if (workflowConfig.workflowName) {
+      this.#rel = workflowConfig.workflowName;
+      this.#workflowId = workflowConfig.workflowId;
+    }
   }
 
   get id() {
@@ -240,6 +255,14 @@ export class Task {
     return this.#timeline;
   }
 
+  get rel() {
+    return this.#rel;
+  }
+
+  get workflowId() {
+    return this.#workflowId;
+  }
+
   toJSON() {
     return {
       id: this.#id,
@@ -247,6 +270,8 @@ export class Task {
       instance: this.#instanceName,
       status: this.#status,
       name: this.#taskName,
+      rel: this.#rel,
+      workflowId: this.#workflowId
     };
   }
 

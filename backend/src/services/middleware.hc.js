@@ -159,6 +159,10 @@ export default class MiddlewareProvider {
           normalizedBody.autoStart = normalizedBody.autoStart === "true";
         }
 
+        if (normalizedBody.nextTasks) {
+          normalizedBody.nextTasks = JSON.parse(normalizedBody.nextTasks);
+        }
+
         // Parse payload JSON if present
         if (normalizedBody.payload) {
           try {

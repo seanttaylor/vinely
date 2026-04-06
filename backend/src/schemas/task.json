@@ -48,9 +48,9 @@
       "type": "string"
     },
 
-    "workflow": {
+    "workflowName": {
       "type": "string",
-      "description": "Optional identifier for a series of related tasks"
+      "description": "Optional client-defined identifier for a series of related tasks"
     },
 
     "executionMode": {

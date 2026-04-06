@@ -12,6 +12,10 @@ const CONFIG = {
   skip_empty_lines: true,
 };
 
+const arrayToObject = () => {
+  
+}
+
 /**
  * Post-processing step for bulk importing wines via CSV file for example. Since
  * CSV extraction casts all values as strings we must re-cast field values to
@@ -77,11 +81,51 @@ export default class TaskProvider extends ApplicationService {
           taskHandle.stop(`Stopped due to exception. See details -> ${e}`);
         }});
 
+        return finalResult;
+
       } catch(ex) {
         this.#logger.error(`INTERNAL ERROR (TaskProvider): **EXCEPTION ENCOUNTERED** while running task (${taskHandle.name}) as instance (${taskHandle.instance}). Task will be **STOPPED** See details -> ${ex.message}`);
         taskHandle.stop(ex.message);
       }
-    }
+    },
+    /**
+     * Runs after new wines are imported to the database; maps the 
+     * imported wines to grapes in a SQL join table
+     * @param {object[]} input - a list of new imported wines from the database
+     * @param {AbortSignal} signal
+     * @param {TaskHandle}
+     */
+    "tasks.wines.map_wine_grapes": async (input, signal, taskHandle) => {
+      const capability = this.#TaskCapability.of(taskHandle.name);
+      const wineGrapeJoins = Result.from(await capability.getAllGrapes())
+      .map((allGrapes) => {
+        const wines = input.map((w) => ({id: w.id, grapes: w.grapes.split(",")}));
+        const grapeDict = allGrapes.reduce((res, curr) => {
+          res[curr.name] = curr;
+          return res;
+        }, {});
+
+        return { grapes: grapeDict, wines };
+      })
+      .map(({ grapes, wines }) => {
+        return wines.reduce((res, curr) => {
+          const join = curr.grapes.map((g) => {
+            return { wine_id: curr.id, grape_id: grapes[g].id }
+          })
+          return [... res, ...join];
+        }, []);
+      })
+      .match({ 
+        err:(e) => {
+          this.#logger.error(`INTERNAL ERROR (Task): **EXCEPTION ENCOUNTERED** while executing task (${taskHandle.name}) See details -> ${e.message}`);
+        }
+      });
+
+      Result.from(await capability.importWineGrapeMapping(wineGrapeJoins))
+
+      console.log(`running task (${taskHandle.name}) as instance (${taskHandle.instance})`);
+      taskHandle.onProgress({ message: "mapped wines to grapes for SQL join", status: "status.completed" })
+    },
   }
 
   TEST = {

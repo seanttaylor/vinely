@@ -8,9 +8,60 @@ import { Task } from "./task.js";
  */
 const TASK_TYPES = Object.freeze({
   "tasks.wines.bulk_import": "INGEST",
+  "tasks.wines.map_wine_grapes": "INGEST",
   "tasks.test.noop": "TEST",
   "tasks.test.noop_2": "TEST"
 });
+
+/**
+ * 
+ * @param {object} logger - the logger interface
+ * @returns 
+ */
+const Workflow = (({ logger }) => ({
+    /**
+     * Overwrites the default `start` method on on the *first* `Task` instance in the list such
+     * that calling `start` on this `Task` serially runs and awaits all remaining tasks
+     * @param {Task[]} instances - a list of `Task` instances
+     * @returns {Task[]} returns a list of **only** the initial task
+     */
+    from(instances) {
+      const [initialTask, ...remaining] = instances;
+      const workflowInitialTask = Object.assign(initialTask, { 
+        start: async (input) => {
+          const result = await Task.prototype.start.call(initialTask, input);
+
+          await remaining.reduce(async (res, currentTask) => {
+            try {
+              return await currentTask.start(res);
+            } catch(ex) {
+              logger.error(`INTERNAL ERROR (Task): **EXCEPTION ENCOUNTED** while running task $${ex.message}`);
+            }
+          }, result);
+        },
+        /**
+         * Customized `toJSON` method to ensure *ALL* tasks created in a
+         * workflow are surfaced when returning API responses or logging
+         * the initial task of a workflow
+        */
+        toJSON() {
+          return instances.map(task => ({
+            id: task.id,
+            createdAt: task.createdAt,
+            instance: task.instance,
+            name: task.name, 
+            status: task.status,
+            rel: task.rel,
+            workflowId: task.workflowId
+          }));
+      }});
+
+      return [workflowInitialTask];
+    }
+  }
+));
+
+
 
 /**
  * Central registry and factory for {@link Task} instances.
@@ -77,11 +128,13 @@ export default class TaskService extends ApplicationService {
     }
 
     const nextTasks = runtimeTaskConfig.nextTasks || [];
+    const workflowName = runtimeTaskConfig.workflowName;
+    const workflowId = crypto.randomUUID();
     const requestedTasks = [ taskName, ...nextTasks ];
 
     taskInstances = requestedTasks.map((tn) => {
       const taskType = TASK_TYPES[tn];
-      const myTask = new Task(this.#TaskProvider[taskType][tn], tn);
+      const myTask = new Task(this.#TaskProvider[taskType][tn], tn, { workflowName, workflowId });
       this.#taskRegistry[myTask.id] = myTask;
       return myTask;
     });
@@ -89,35 +142,7 @@ export default class TaskService extends ApplicationService {
     return Result.ok(taskInstances).map((instances) => {
       // The task request is a workflow
       if (instances.length > 1) {
-        const [initialTask, ...remaining] = instances;
-
-        //Workflow.from(initialTask, remainingTasks);
-        Object.assign(initialTask, { 
-          start: async (input) => {
-            const result = await Task.prototype.start.call(initialTask, input);
-
-            await remaining.reduce(async (res, currentTask) => {
-              try {
-                return await currentTask.start(res);
-              } catch(ex) {
-                this.#logger.error(`INTERNAL ERROR (Task): **EXCEPTION ENCOUNTED** while running task $${ex.message}`);
-              }
-            }, result);
-          },
-          // Customized `toJSON` method to ensure *ALL* tasks created in a
-          // workflow are surfaced when returning API responses or logging
-          // the initial task of a workflow
-          toJSON() {
-            return instances.map(task => ({
-              id: task.id,
-              createdAt: task.createdAt,
-              instance: task.instance,
-              name: task.name, 
-              status: task.status
-            }));
-          }
-        });
-        return [initialTask];
+        return Workflow({ logger: this. #logger }).from(instances);
       }
       return instances;
     })
