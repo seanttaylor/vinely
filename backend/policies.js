@@ -23,7 +23,7 @@ export const policies = {
     allowedAPIs: ["WineService"],
   },
   TaskProvider: {
-    allowedAPIs: ["Database"] 
+    allowedAPIs: ["Database", "Events"] 
   },
   TaskService: {
     allowedAPIs: ["TaskProvider"]

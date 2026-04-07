@@ -10,7 +10,7 @@
   "properties": {
     "name": {
       "type": "string",
-      "enum": ["tasks.wines.bulk_import", "tasks.test.noop"],
+      "enum": ["tasks.wines.bulk_import", "tasks.test.noop", "tasks.wines.create_import_template"],
       "description": "Identifier of a predefined task"
     },
 

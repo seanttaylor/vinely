@@ -9,6 +9,7 @@ import { Task } from "./task.js";
 const TASK_TYPES = Object.freeze({
   "tasks.wines.bulk_import": "INGEST",
   "tasks.wines.map_wine_grapes": "INGEST",
+  "tasks.wines.create_import_template": "INGEST",
   "tasks.test.noop": "TEST",
   "tasks.test.noop_2": "TEST"
 });

@@ -1,4 +1,5 @@
 import { Result } from "../../types/result.js";
+import { SystemEvent } from "../../types/system-event.js";
 import { taskConfig } from "./task-config.js";
 
 const stubWines = [
@@ -49,9 +50,10 @@ const stubWines = [
  * running tasks do not have access the entire databse API surface
  * @param {object} options
  * @param {object} options.dbClient
+ * @param {object} options.events
  * @param {object} options.logger
  */
-export const TaskCapability = ({ dbClient, logger }) => {
+export const TaskCapability = ({ dbClient, events, logger }) => {
   
   /**
    * @description APIs scoped to specified tasks
@@ -93,6 +95,38 @@ export const TaskCapability = ({ dbClient, logger }) => {
           return data.length ? Result.ok(data) : Result.ok([]);
         } catch(ex) {
           logger.error(`INTERNAL ERROR (TaskCapability): **EXCEPTION ENCOUNTERED** while fetching grapes. Task will be *STOPPED* See details -> ${ex.message}`);
+          return Result.error(ex.message);
+        }
+      }
+    },
+    "tasks.wines.create_import_template": {
+      /**
+       * @param {object} options
+       * @param {number} options.limit
+       * @returns {Result<object[] | Error>}
+       */
+      async getWines({ limit }) {
+        try {
+          const { data, error } = await dbClient.from('wines').select().limit(limit);
+          if (error) {
+            return Result.error(error.message);
+          }
+
+          return data.length ? Result.ok(data) : Result.ok([]);
+        } catch(ex) {
+          logger.error(`INTERNAL ERROR (TaskCapability): **EXCEPTION ENCOUNTERED** while fetching grapes. Task will be *STOPPED* See details -> ${ex.message}`);
+          return Result.error(ex.message);
+        }
+      },
+      /**
+       * Wraps the event dispatch mechanisms so tasks can fire events
+       * @param {SystemEvent} event
+       */
+      async dispatchEvent(event) {
+        try {
+          events.dispatchEvent(event);
+        } catch(ex) {
+          logger.error(`INTERNAL ERROR (TaskCapability): **EXCEPTION ENCOUNTERED** while dispatching event. Task will be *STOPPED* See details -> ${ex.message}`);
           return Result.error(ex.message);
         }
       }

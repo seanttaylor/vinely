@@ -9,5 +9,6 @@
 /** @type {TaskCapabilityMap} */
 export const taskConfig = {
   "tasks.wines.bulk_import": ["bulkImportWines"],
-  "tasks.wines.map_wine_grapes": ["getAllGrapes"]
+  "tasks.wines.map_wine_grapes": ["getAllGrapes"],
+  "tasks.wines.create_import_template": ["getWines", "dispatchEvent"]
 };

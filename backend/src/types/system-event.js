@@ -10,6 +10,10 @@ export const Events = Object.freeze({
   APP_INITIALIZED: "evt.system.app_initialized",
   // Indicates an application exception event has been captured
   RUNTIME_EXCEPTION: "evt.system.runtime_exception",
+  /**
+   * Indicates a import template has been successfully created as part of the `tasks.wines.create_import_template` task
+   */
+  WINE_IMPORT_TEMPLATE_CREATED: "evt.tasks.wine_import_template_created"
 });
 
 /**

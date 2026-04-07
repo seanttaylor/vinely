@@ -1,6 +1,8 @@
 import { parse } from "csv-parse/sync";
+import { json2csv } from "json-2-csv";
 import { Result } from "../../types/result.js";
 import { ApplicationService } from "../../../system.js";
+import { Events, SystemEvent } from "../../types/system-event.js";
 import { Wine } from "../../schemas/vendor/zod/wine.zod.js";
 import { TaskCapability } from "./task-capability.js";
 
@@ -12,9 +14,6 @@ const CONFIG = {
   skip_empty_lines: true,
 };
 
-const arrayToObject = () => {
-  
-}
 
 /**
  * Post-processing step for bulk importing wines via CSV file for example. Since
@@ -45,8 +44,9 @@ export default class TaskProvider extends ApplicationService {
     try {
       this.#logger = sandbox.core.logger.getLoggerInstance();
       const dbClient = sandbox.my.Database.getClient();
+      const events = sandbox.my.Events;
 
-      this.#TaskCapability = TaskCapability({ dbClient, logger: this.#logger });
+      this.#TaskCapability = TaskCapability({ dbClient, events, logger: this.#logger });
     } catch (ex) {
       this.#logger.error(
         `INTERNAL_ERROR (TaskProvider): Exception encountered while starting the service. See details -> ${ex.message}`
@@ -90,7 +90,7 @@ export default class TaskProvider extends ApplicationService {
     },
     /**
      * Runs after new wines are imported to the database; maps the 
-     * imported wines to grapes in a SQL join table
+     * imported wines to grapes for ultimate insertion in a SQL join table
      * @param {object[]} input - a list of new imported wines from the database
      * @param {AbortSignal} signal
      * @param {TaskHandle}
@@ -121,10 +121,50 @@ export default class TaskProvider extends ApplicationService {
         }
       });
 
-      Result.from(await capability.importWineGrapeMapping(wineGrapeJoins))
+      Result.from(await capability.importWineGrapeMapping(wineGrapeJoins));
 
       console.log(`running task (${taskHandle.name}) as instance (${taskHandle.instance})`);
       taskHandle.onProgress({ message: "mapped wines to grapes for SQL join", status: "status.completed" })
+    },
+    /**
+     * Task a csv file containing names of wines that will be imported; outputs
+     * a template csv file prepopulated with wine names and empty columns corresponding
+     * to the `wines` database table. Allows for quick scoring of wines and preparation of csv files for 
+     * the bulk upload workflow
+     * @param {object[]} input 
+     * @param {AbortSignal} signal 
+     * @param {TaskHandle} taskHandle 
+     * @returns {Promise<object>} a CSV template for bulk importing wines
+     */
+    "tasks.wines.create_import_template": async(input, signal, taskHandle) => {
+      this.#logger.log(`running task (${taskHandle.name}) as instance (${taskHandle.instance})`);
+      const capability = this.#TaskCapability.of(taskHandle.name);
+      const csvString = input.file.buffer.toString("UTF-8");
+      const records = parse(csvString, CONFIG);
+      const excludedRows = ["name", "id", "created_at"];
+
+      const templateJSON = Result.from(await capability.getWines({ limit: 1 }))
+      .map(([wine]) => {
+        return records.map((r) => {
+          return Object.keys(wine).reduce((res, keyName) => {
+            if (excludedRows.includes(keyName)) {
+              return res;
+            }
+
+            res[keyName] = null;
+            return res;
+          }, { name: r.name });  
+        });
+      })
+      .match({
+        err: (e) => taskHandle.stop(`Stopped due to exception. See details -> ${e.message}`)
+      });
+
+      const CSVTemplate = await json2csv(templateJSON);
+      // await capability.dispatchEvent(new SystemEvent(Events.WINE_IMPORT_TEMPLATE_CREATED, {
+      //   template: CSVTemplate
+      // }));
+
     },
   }
 

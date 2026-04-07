@@ -70,6 +70,11 @@ const Mixin = {
           wrapAsyncEventHandler(onTelemetryPush)
         );
 
+        hc.my.Events.addEventListener(
+          Events.WINE_IMPORT_TEMPLATE_CREATED,
+          wrapAsyncEventHandler(onWineImportTemplateCreated)
+        );
+
         /**
          * Wraps async functions used as handlers for an
          * `EventTarget` instance; ensures any thrown exceptions are
@@ -107,6 +112,10 @@ const Mixin = {
               `INTERNAL ERROR (main): **EXCEPTION ENCOUNTERED** while logging a runtime exception to the database. See details -> ${error.message}`
             );
           }
+        }
+
+        async function onWineImportTemplateCreated(event) {
+          console.log(event);
         }
 
         console.log("vinely v0.0.1");
