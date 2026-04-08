@@ -27,7 +27,7 @@ const HTTPResponse = {
 
         res.set("X-Total-Count", data.length);
         res.status(statusCode);
-        res.json(...data);
+        res.json(Array.isArray(data) ? data : [data]);
       },
       /**
        * @param {Problem} error
@@ -182,6 +182,79 @@ export class TaskRouter {
 
     });
 
+    /**
+     * 
+     */
+    router.get("/tasks/:id/attachments", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const taskAttachmentResult = TaskService.getTask(id).map(([t])=> t.attachments);
+        const { success: onReqSuccess, error: onReqError } = HTTPResponse.with(res);
+
+        taskAttachmentResult.match({ ok: onReqSuccess, err: onReqError }); 
+      } catch(ex) {
+        const { error: onQueryError } = HTTPResponse.with(res); 
+        
+        Result.ok(MiddlewareProvider.Telemetry.createExceptionEvent({
+          service: "TaskService",
+          ex,
+        }))
+        .tap((exceptionEvent) => {
+          console.error(`INTERNAL_ERROR (TaskService): **EXCEPTION ENCOUNTERED** while creating a task. This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionEvent.detail.header.id}). See details -> ${ex.message}`);
+          Events.dispatchEvent(exceptionEvent);
+        })
+        .map((exceptionEvent) => Result.error(Problem.of({
+            title: "INTERNAL ERROR",
+            detail: "There was an error while retrieving a task.",
+            instance: `runtime_exceptions/task_router/${exceptionEvent.detail.header.id}`,
+          })))
+        .match({
+          err: onQueryError 
+        });
+      }
+
+    });
+
+    /**
+     * 
+     */
+    router.get("/tasks/:id/attachments/:name", async (req, res) => {
+      try {
+        const { id, name } = req.params;
+        const taskAttachmentResult = TaskService.getTask(id).map(([t])=> t.getAttachment(`${id}:${name}`));
+        const { error: onReqError } = HTTPResponse.with(res);
+
+        taskAttachmentResult.match({ 
+        ok: ([attachment]) => {
+          res.set("Content-Type", attachment.mimeType);
+          res.set("Content-Length", Buffer.byteLength(attachment.data));
+          res.set("Content-Disposition", `attachment; filename="${attachment.name}.csv"`);
+          res.status(200).send(attachment.data);
+        },
+         err: onReqError 
+        }); 
+      } catch(ex) {
+        const { error: onQueryError } = HTTPResponse.with(res); 
+        
+        Result.ok(MiddlewareProvider.Telemetry.createExceptionEvent({
+          service: "TaskService",
+          ex,
+        }))
+        .tap((exceptionEvent) => {
+          console.error(`INTERNAL_ERROR (TaskService): **EXCEPTION ENCOUNTERED** while creating a task. This exception instance will be pushed to the 'telemetry.runtime_exceptions' table in the database with id (${exceptionEvent.detail.header.id}). See details -> ${ex.message}`);
+          Events.dispatchEvent(exceptionEvent);
+        })
+        .map((exceptionEvent) => Result.error(Problem.of({
+            title: "INTERNAL ERROR",
+            detail: "There was an error while retrieving a task.",
+            instance: `runtime_exceptions/task_router/${exceptionEvent.detail.header.id}`,
+          })))
+        .match({
+          err: onQueryError 
+        });
+      }
+
+    });
 
     /**
      * 

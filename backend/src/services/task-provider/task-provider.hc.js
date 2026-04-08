@@ -161,6 +161,13 @@ export default class TaskProvider extends ApplicationService {
       });
 
       const CSVTemplate = await json2csv(templateJSON);
+      
+      taskHandle.addAttachment({
+        name: `wine-import-template`,
+        mimeType: "text/csv",
+        data: CSVTemplate,
+      });
+      
       // await capability.dispatchEvent(new SystemEvent(Events.WINE_IMPORT_TEMPLATE_CREATED, {
       //   template: CSVTemplate
       // }));
