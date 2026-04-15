@@ -1,1 +1,1 @@
-// Add JS here
+console.log('vine.ly.fe v0.0.1');

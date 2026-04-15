@@ -4,7 +4,12 @@ import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 
 import cors from "cors";
+import path from "path";
 import { randomUUID } from "crypto";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /******** INTERFACES ********/
 
@@ -47,6 +52,10 @@ export default class HTTPService extends ApplicationService {
         legacyHeaders: false, // Disable the `X-RateLimit-*` headers
       });
 
+      /******** STATIC ROUTES ********/
+      const staticPath = path.join(__dirname, '../../../www');
+      app.use(express.static(staticPath));
+
       /******** MIDDLEWARE ********/
       app.use(
         cors({
@@ -63,7 +72,6 @@ export default class HTTPService extends ApplicationService {
       app.use(morgan("tiny"));
       app.use(bodyParser.json());
       app.use(bodyParser.urlencoded({ extended: false }));
-      app.use(express.static("static"));
 
       /**
        * Applies a `request_id` to all incoming API requests
@@ -81,7 +89,7 @@ export default class HTTPService extends ApplicationService {
       // app.use(this.#sandbox.my.RouteService.Subscription);
 
       // Rate-limited routes
-      app.use(simpleRateLimiter);
+      // app.use(simpleRateLimiter);
       // app.use(this.#sandbox.my.RouteService.Events);
 
       // Authenticated routes
