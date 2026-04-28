@@ -112,24 +112,61 @@
       /* Adjust this value to match your footer's height */
     }
   </style>
+  <style>
+    ion-segment-view {
+      height: 150px;
+    }
+
+    ion-segment-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    ion-segment-content:nth-of-type(1) {
+      background: lightpink;
+    }
+
+    ion-segment-content:nth-of-type(2) {
+      background: lightblue;
+    }
+
+    ion-segment-content:nth-of-type(3) {
+      background: lightgreen;
+    }
+  </style>
 
   <title>Mobile App</title>
 </head>
 
 <body>
   <ion-app>
-    <ion-toolbar>
-      <ion-title>Vine.ly</ion-title>
-    </ion-toolbar>
-    <ion-toolbar>
-      <ion-searchbar></ion-searchbar>
-    </ion-toolbar>
+    <ion-header>
+
+      <ion-toolbar>
+        <ion-segment>
+          <ion-segment-button value="product_lookup" content-id="search">
+            <ion-label>Search</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="product_discovery" content-id="discover">
+            <ion-label>Discover</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+
+      </ion-toolbar>
+      <ion-searchbar placeholder="e.g. Tomaiolo Chianti Classico" debounce="1000"></ion-searchbar>
+
+    </ion-header>
+
+
+    <!-- SIDE NAVIGATION -->
     <ion-menu content-id="home-page">
       <ion-header>
         <ion-toolbar>
           <ion-title></ion-title>
         </ion-toolbar>
       </ion-header>
+
       <ion-content class="ion-padding">
         <ion-list>
           <ion-item>
@@ -145,7 +182,6 @@
       </ion-content>
     </ion-menu>
 
-
     <ion-tabs>
       <ion-tab tab="home">
         <div class="ion-page" id="home-page">
@@ -157,8 +193,18 @@
               <ion-title>Vine.ly</ion-title>
             </ion-toolbar>
           </ion-header>
+
+
+          <ion-segment-view>
+            <ion-segment-content id="search">
+              Some empty state hinting at the purpose of this tab
+            </ion-segment-content>
+            <ion-segment-content id="discover">
+              Some empty state explaining product discovery
+            </ion-segment-content>
+          </ion-segment-view>
+
           <ion-content class="ion-padding" id="main-content">
-            <currently-feed></currently-feed>
           </ion-content>
         </div>
       </ion-tab>
