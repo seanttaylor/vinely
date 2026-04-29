@@ -1,20 +1,20 @@
+import { QueryService } from "./query.js";
+
 /**
  * @readonly
  * @enum {string}
  */
 export const Events = Object.freeze({
+    //
     SEARCH_MODE_CHANGED: 'ionChange',
+    //
     SEARCH_QUERY: 'ionInput',
 });
 
 (async function (window) {
     console.log('vine.ly.fe v0.0.1');
     const $ = document.querySelector.bind(document);
-
-    const ionSegment = $('ion-segment');
-    const ionSearchbar = $('ion-searchbar');
-
-
+    
     /******** NON_SECRET CONFIGURATION *******/
     const config = {
         vars: {
@@ -22,10 +22,17 @@ export const Events = Object.freeze({
             DEFAULT_SEARCH_MODE: 'product_lookup',
         }
     };
+    
+    const myQueryService = new QueryService(config);
+    const ionSegment = $('ion-segment');
+    const ionSearchbar = $('ion-searchbar');
 
-       /******** CORE APPLICATION STATE *******/
-    const app = {
-        searchMode: config.vars.DEFAULT_SEARCH_MODE
+    /******** CORE APPLICATION STATE *******/
+    const global = {
+        search: {
+            mode: config.vars.DEFAULT_SEARCH_MODE,
+            latestResults: null
+        }
     }
 
     /******** EVENT REGISTRATION *******/
@@ -37,7 +44,9 @@ export const Events = Object.freeze({
      * @param {object} event.detail 
      */
     function onChangeSearchMode({ detail }) {
-        console.log(detail);
+        const { value } = detail;
+        global.searchMode = value;
+        global.foo = true;
     }
 
     /**
@@ -45,12 +54,10 @@ export const Events = Object.freeze({
     * @param {object} event.detail 
     */
     async function onSearch({ detail }) {
-        const url = new URL(`/search?q=${detail.value}&qtype=${app.searchMode}`, config.vars.BACKEND_URI);
-        console.log(url.href);
-        // push search query to backend
-        await window.fetch(url, {
-            method: 'POST'
-        })
+        const { value: searchQuery } = detail;
+        const queryResult = await myQueryService.runQuery(searchQuery, global.searchMode);
+        global.search.latestResults = queryResult;
+
     }
 
 }(window));

@@ -1,0 +1,169 @@
+/**
+ * @template TValue
+ * @template TError
+ */
+export class Result {
+  /**
+   * Wrapper for a value returned from a function
+   * @template T
+   * @param {T} value
+   * @returns {Result<T, null>}
+   */
+  static ok(value) {
+    if (value instanceof Result) {
+      return value; // 🔥 unwrap instead of nesting
+    }
+    return new Result(true, value, null, "success");
+  }
+
+  /**
+   * @template E
+   * @param {E} error
+   * @param {string} type
+   * @returns {Result<null, E>}
+   */
+  static error(error, type = "err") {
+    return new Result(false, null, error, type);
+  }
+  /**
+   * @param {Result <T,E>} value
+   * @returns {Result<null, E>}
+   */
+  static from(value) {
+    return value instanceof Result ? value : Result.ok(value);
+  }
+
+  /**
+   * @param {boolean} ok
+   * @param {TValue|null} value
+   * @param {TError|null} error
+   * @param {string} type
+   */
+  constructor(ok, value, error, type) {
+    this.ok = ok;
+    this.value = value;
+    this.error = error;
+    this.type = type;
+  }
+
+  /**
+   * @returns {Boolean}
+   */
+  isOk() {
+    return this.ok;
+  }
+
+  /**
+   * @returns {Boolean}
+   */
+  isError() {
+    return !this.ok;
+  }
+
+  /**
+   * Applies a transformation function to the value of the result if it is ok,
+   * catching any errors thrown by the transformation function and returning them as a Result.error.
+   * @param {Function} transformFn - The function to transform the value.
+   * @returns {Result}
+   */
+  map(transformFn) {
+    if (this.isOk()) {
+      try {
+        if (this.value instanceof Result) {
+          return this.value.map(transformFn);
+        } else {
+          // Applies the transformation function to the unwrapped value
+          const transformed = transformFn(this.value);
+          // Ensures not to double-wrap if `transformFn` also returns a Result
+          return transformed instanceof Result
+            ? transformed
+            : Result.ok(transformed);
+        }
+      } catch (ex) {
+        return Result.error(ex.message);
+      }
+    } else {
+      return this;
+    }
+  }
+
+  /**
+   * Executes a side-effect function with the contained value if the Result is ok,
+   * without modifying the Result or its value.
+   * If the Result is an error, the side-effect is skipped and the Result
+   * is returned unchanged.
+   * @param {(value: TValue) => void} fn
+   * Function invoked with the current value when the Result is ok.
+   *
+   * @returns {Result<TValue, TError>}
+   * Returns the same Result instance to allow continued chaining.
+   */
+  tap(fn) {
+    if (this.isOk()) {
+      try {
+        fn(this.value);
+      } catch (ex) {
+        console.error(`Result.tap encountered an exception. See details -> ${ex.message}`);
+      }
+    }
+    return this;
+  }
+
+  /**
+   * Pattern matches against the `Result`.
+   *
+   * If the Result is successful, invokes the required `ok` handler with the value.
+   * If the Result is an error, attempts to invoke a handler matching the error `type`.
+   * If no specific error handler is found, falls back to `err` if provided.
+   * Throws if no appropriate handler is supplied.
+   *
+   * @template R
+   * @param {{
+   *   ok: (value: any) => R,
+   *   err?: (error: any) => R,
+   *   [errorType: string]: ((error: any) => R) | undefined
+   * }} handlers
+   * @returns {R}
+   * @throws {Error} If required handlers are missing
+   */
+  match(handlers = {}) {
+    if (this.ok) {
+      if (typeof handlers.ok === "function") {
+        return handlers.ok(this.value);
+      }
+      return this.value;
+      //throw new Error('Result.match requires an "ok" handler');
+    }
+
+    const handler = handlers[this.type] || handlers.err;
+
+    if (typeof handler === "function") {
+      return handler(this.error);
+    }
+
+    throw new Error(
+      `Result.match: no handler found for error type "${this.type}"`
+    );
+  }
+
+  /**
+   * @returns {TValue|null}
+   */
+  getValue() {
+    if (this.isError()) {
+      console.info("Cannot get the value of an error Result");
+      return this.error;
+    }
+    return this.value;
+  }
+
+  /**
+   * @returns {TError|null}
+   */
+  getError() {
+    if (this.isOk()) {
+      console.info("Cannot get the error of a success Result");
+    }
+    return this.error;
+  }
+}
