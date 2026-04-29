@@ -112,6 +112,7 @@
       /* Adjust this value to match your footer's height */
     }
   </style>
+
   <style>
     ion-segment-view {
       height: 150px;
@@ -136,11 +137,31 @@
     }
   </style>
 
+  <style>
+    .search-item {
+      opacity: 0;
+      transform: translateX(20px);
+      animation: slideIn 300ms ease forwards;
+    }
+
+    @keyframes slideIn {
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+  </style>
+
   <title>Mobile App</title>
 </head>
 
 <body>
+
   <ion-app>
+
+
+
+    <!--HEADER-->
     <ion-header>
 
       <ion-toolbar>
@@ -152,8 +173,8 @@
             <ion-label>Discover</ion-label>
           </ion-segment-button>
         </ion-segment>
-
       </ion-toolbar>
+
       <ion-searchbar placeholder="e.g. Tomaiolo Chianti Classico" debounce="1000"></ion-searchbar>
 
     </ion-header>
@@ -197,37 +218,16 @@
 
           <ion-segment-view>
             <ion-segment-content id="search">
+              Find wines by label or producer name
             </ion-segment-content>
             <ion-segment-content id="discover">
-              Some empty state explaining product discovery
+              Explore wines by attribtutes
             </ion-segment-content>
           </ion-segment-view>
 
           <ion-content class="ion-padding" id="main-content">
-            <ion-list>
 
-
-              <ion-item detail>
-                <ion-label>
-                  <h2>H2 Heading</h2>
-                  <p>Paragraph</p>
-                </ion-label>
-              </ion-item>
-
-              <ion-item detail>
-                <ion-label>
-                  <h2>H2 Heading</h2>
-                  <p>Paragraph</p>
-                </ion-label>
-              </ion-item>
-
-              <ion-item detail>
-                <ion-label>
-                  <h2>H3 Heading</h2>
-                  <p>Paragraph</p>
-                </ion-label>
-              </ion-item>
-            </ion-list>
+            <ui-search-results></ui-search-results>
           </ion-content>
         </div>
       </ion-tab>
@@ -244,12 +244,12 @@
         </div>
       </ion-tab>
 
-      <ion-tab-bar slot="bottom">
-        <!--<ion-tab-button tab="search">
-      <ion-icon name="search"></ion-icon>
-      Search
-    </ion-tab-button>-->
-      </ion-tab-bar>
+      <!--<ion-tab-bar slot="bottom">
+        <ion-tab-button tab="search">
+          <ion-icon name="search"></ion-icon>
+          Search
+        </ion-tab-button>
+      </ion-tab-bar>-->
     </ion-tabs>
 
     <!--<ion-footer>
@@ -261,58 +261,33 @@
   </ion-app>
 
   <script type="module">
-    class PageSignin extends HTMLElement {
+    class SearchPage extends HTMLElement {
       connectedCallback() {
         this.innerHTML = `
-            <ion-content class="ion-padding" fullscreen>
-              <div class="logo">&</div>
-              <ion-text class="ion-text-center">
-                <h2>Current.ly</h2>
-              </ion-text>
-  
-              <ion-list lines="none">
-                <ion-item>
-                  <ion-input type="email" placeholder="ex: jon.smith@gmail.com" label="Email" label-placement="fixed" fill="solid" mode="ios" shape="round"></ion-input>
-                </ion-item>
-                <ion-item>
-                  <ion-input type="password" placeholder="*********" label="Password" label-placement="fixed" fill="outline"></ion-input>
-                </ion-item>
-              </ion-list>
-  
-              <ion-button expand="block" color="success" id="signinBtn">SIGN IN</ion-button>
-  
-              <ion-text class="ion-text-center">
-                <p>or sign in with</p>
-              </ion-text>
-  
-              <div class="social-icons">
-                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/google.svg" alt="Google" height="24" />
-                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/facebook.svg" alt="Facebook" height="24" />
-                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/twitter.svg" alt="Twitter" height="24" />
-              </div>
-  
-              <div class="signup">
-          <p>Don't have an account? <a href="#">Sign Up</a></p>
-        </div>
-            </ion-content>
-          `;
-
-        this.querySelector('#signinBtn').addEventListener('click', (e) => {
-          document.querySelector('ion-router').push('/home');
-        });
+      <ion-page>
+        <ion-content>
+          <h1>Search Page</h1>
+        </ion-content>
+      </ion-page>
+    `;
       }
     }
+    customElements.define('search-page', SearchPage);
 
-    class PageHome extends HTMLElement {
+
+    class WineDetailPage extends HTMLElement {
       connectedCallback() {
         this.innerHTML = `
-          
-          `;
+      <ion-page>
+        <ion-content>
+          <h1>Detail Page</h1>
+        </ion-content>
+      </ion-page>
+    `;
       }
     }
+    customElements.define('wine-detail-page', WineDetailPage);
 
-    customElements.define('page-signin', PageSignin);
-    customElements.define('page-home', PageHome);
   </script>
 </body>
 

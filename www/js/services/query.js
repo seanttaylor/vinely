@@ -1,4 +1,4 @@
-import { Result } from "./result.js";
+import { Result } from "../types/result.js";
 
 export class QueryService {
     #config;
@@ -13,7 +13,7 @@ export class QueryService {
      * @param {string} mode
      * @returns {Result}
      */
-    async runQuery(query, mode='product_lookup') {
+    async runQuery(query, mode = 'product_lookup') {
         try {
             if (typeof mode !== 'string') {
                 return Result.error(`runQuery **must** have 'mode' parameter of type (string); received type ${typeof mode}`);
@@ -28,7 +28,7 @@ export class QueryService {
             }
 
             return Result.from(response);
-        } catch(ex) {
+        } catch (ex) {
             console.error(`INTERNAL_ERROR (QueryService.FE): EXCEPTION ENCOUNTERED** while executing search query. See details -> ${ex.message}`);
             return Result.error();
         }
