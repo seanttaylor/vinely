@@ -8,9 +8,9 @@ import { UISearchResultList } from "./ui-components/search-results.js";
  */
 export const Events = Object.freeze({
     //
-    SEARCH_MODE_CHANGED: 'ionChange',
+    SEARCH_MODE_CHANGED: 'mode_changed',
     //
-    SEARCH_QUERY: 'ionInput',
+    SEARCH_QUERY: 'input',
 });
 
 /**
@@ -26,9 +26,13 @@ export const SearchbarPlacedholderText = Object.freeze({
 
 (async function (window) {
     console.log('vine.ly.fe v0.0.1');
-    const $ = document.querySelector.bind(document);
+    const $ = (cssSelector) => {
+        return () => {
+            return document.querySelector(cssSelector);
+        }
+    }
 
-    customElements.define('ui-search-results', UISearchResultList());
+    //customElements.define('ui-search-results', UISearchResultList());
 
     /******** NON_SECRET CONFIGURATION *******/
     const config = {
@@ -39,8 +43,9 @@ export const SearchbarPlacedholderText = Object.freeze({
     };
 
     const myQueryService = new QueryService(config);
-    const ionSegment = $('ion-segment');
-    const ionSearchbar = $('ion-searchbar');
+    const getIonSegment = $('[data-component=search-mode-selector]');
+    const getIonSearchbar = $('input[type=search]');
+    const getSearchResultsList = $('ui-search-results');
     
     /******** CORE STARTING APPLICATION STATE *******/
     const templateGlobal = {
@@ -63,14 +68,16 @@ export const SearchbarPlacedholderText = Object.freeze({
     );
 
     /******** UI EVENT REGISTRATION *******/
-    ionSegment.addEventListener(Events.SEARCH_MODE_CHANGED, onChangeSearchMode);
-    ionSearchbar.addEventListener(Events.SEARCH_QUERY, onSearch);
+    setTimeout(() => {
+        getIonSegment().addEventListener(Events.SEARCH_MODE_CHANGED, onChangeSearchMode);
+        getIonSearchbar().addEventListener(Events.SEARCH_QUERY, onSearch);
+    }, 0)
 
 
     /******** APPLICATION SUBSCRIPTIONS *********/
     new ObjectSubscription(
         (change) => {
-            ionSearchbar.placeholder = SearchbarPlacedholderText[change.value.new];
+            getIonSearchbar().placeholder = SearchbarPlacedholderText[change.value.new];
         }, 
         templateGlobal,
         '/search/mode'
@@ -78,7 +85,7 @@ export const SearchbarPlacedholderText = Object.freeze({
 
      new ObjectSubscription(
         (change) => {
-            $('ui-search-results').onComponentUpdate(change.value.new);
+            getSearchResultsList().onComponentUpdate(change.value.new);
         }, 
         templateGlobal,
         '/search/latest'
@@ -97,10 +104,10 @@ export const SearchbarPlacedholderText = Object.freeze({
     /**
      * Executes a user search after collecting the search query from the search bar 
      * @param {object} event
-     * @param {object} event.detail 
+     * @param {object} event 
     */
-    async function onSearch({ detail }) {
-        const { value: searchQuery } = detail;
+    async function onSearch(event) {
+        const searchQuery = event.target.value;
         const queryResult = await myQueryService.runQuery(searchQuery, GLOBAL.search.mode);
         GLOBAL.search.latest = queryResult;
     }

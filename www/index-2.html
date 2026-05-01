@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Ratchet template page</title>
+
+    <!-- Sets initial viewport load and disables zooming  -->
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1">
+
+    <!-- Makes your prototype chrome-less once bookmarked to your phone's home screen -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+    <!-- Include the compiled Ratchet CSS -->
+    <link href="./css/ratchet.css" rel="stylesheet">
+
+    <!-- Include the compiled Ratchet JS -->
+    <script src="./js/ratchet.js"></script>
+</head>
+<style>
+    /******** segmented control ********/
+
+    .segmented-control {
+        position: relative;
+        display: flex;
+        border-radius: 20px;
+        background: #e0e0e0;
+        overflow: hidden;
+    }
+
+    .segmented-control .control-item {
+        border-left: initial;
+    }
+
+    .segment-view {
+        position: absolute;
+        width: 100%;
+        top: 0;
+        left: 0;
+        text-align: center;
+    }
+
+    .segment-view.hidden {
+        display: none;
+    }
+
+    .segment-view {
+        transform: translateX(100%);
+        transition: transform 250ms ease;
+    }
+
+    /* active (centered) */
+    .segment-view.active {
+        transform: translateX(0);
+    }
+
+    /* entering from right */
+    .segment-view.enter {
+        transform: translateX(100%);
+    }
+
+    /* exiting to left */
+    .segment-view.exit {
+        transform: translateX(-100%);
+    }
+
+    /* entering */
+    .segment-view.enter.forward {
+        transform: translateX(100%);
+    }
+
+    .segment-view.enter.back {
+        transform: translateX(-100%);
+    }
+
+    /* exiting */
+    .segment-view.exit.forward {
+        transform: translateX(-100%);
+    }
+
+    .segment-view.exit.back {
+        transform: translateX(100%);
+    }
+
+    .control-item {
+        flex: 1;
+        text-align: center;
+        padding: 8px 0;
+        position: relative;
+        z-index: 1;
+        border-radius: 30px;
+        /* keep text above indicator */
+    }
+
+    .control-item.active {
+        font-weight: 600;
+        color: white;
+    }
+
+    .segment-indicator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 50%;
+        /* assuming 2 segments */
+        height: 100%;
+        background: #cfcfcf;
+        border-radius: 20px;
+        transition: transform 250ms ease;
+        z-index: 0;
+    }
+
+
+
+    @keyframes slideIn {
+        to {
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes slideOut {
+        to {
+            transform: translateX(-100%);
+        }
+    }
+
+    ui-segment-view {
+        position: relative;
+        display: block;
+        overflow: hidden;
+        height: 80px;
+        /* or whatever fits your content */
+    }
+
+
+    .search-item {
+        opacity: 0;
+        transform: translateX(20px);
+        animation: slideIn 300ms ease forwards;
+    }
+
+    @keyframes slideIn {
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .search-container {
+        margin-top: 10px;
+        margin-left: 15px;
+        margin-right: 15px;
+    }
+
+    .search-mode {
+        text-align: center;
+        font-size: 16px;
+    }
+
+    [data-component="search-mode-selector"] {
+        border-radius: 20px;
+    }
+</style>
+
+<body>
+
+    <!-- Make sure all your bars are the first things in your <body> -->
+    <header class="bar bar-nav">
+        <ui-segmented-control for="main-view" data-component="search-mode-selector">
+            <div class="segmented-control">
+                <div class="segment-indicator"></div>
+
+                <a class="control-item active" data-value="product_lookup" data-direction="back">Search</a>
+                <a class="control-item" data-value="product_discovery" data-direction="forward">Discover</a>
+            </div>
+        </ui-segmented-control>
+
+    </header>
+
+    <!-- Wrap all non-bar HTML in the .content div (this is actually what scrolls) -->
+    <div class="content">
+        <div class="search-container">
+            <form>
+                <input type="search" placeholder="e.g. Tomaiolo Chianti Classico">
+            </form>
+        </div>
+        <ui-segment-view id="main-view">
+            <div class="segment-view active" data-view="product_lookup">
+                Find wines by label or producer name
+            </div>
+
+            <div class="segment-view hidden" data-view="product_discovery">
+                Explore wines by attributes
+            </div>
+        </ui-segment-view>
+        <!--<div class="search-mode">
+            <div class="search-mode-search">
+                <p>Find wines by label or producer name</p>
+            </div>
+            <div class="search-mode-discover">
+                <p>Explore wines by attribtutes</p>
+            </div>
+        </div>-->
+        <div class="search-results-container">
+            <ui-search-results></ui-search-results>
+        </div>
+
+        <script>
+            /******** UISearchResults ********/
+            class UISearchResults extends HTMLElement {
+                connectedCallback() {
+                    this.renderEmptyState();
+
+                    // optional: signal ready
+                    setTimeout(() => {
+                        document.dispatchEvent(
+                            new CustomEvent('SEARCH_RESULTS_INITIALIZED')
+                        );
+                    }, 0);
+                }
+
+                /**
+                 * @param {Result<Object[]>} data
+                 */
+                onComponentUpdate(data) {
+                    try {
+                        console.log(data)
+                        if (data.isError()) {
+                            this.renderEmptyState();
+                            return;
+                        }
+
+                        this.innerHTML = `
+                <ul>
+                ${data.getValue()
+                                .map(
+                                    (item, index) => `
+                    <li class="table-view-cell media search-item"
+                        style="animation-delay: ${index * 60}ms">
+    <a class="navigate-right" href="two.html" data-transition="slide-in">
+      <div class="media-body">
+        ${item.name}
+        <p>${item.producer_id}</p>
+      </div>
+    </a>
+  </li>                     
+                    `
+                                )
+                                .join('')}
+                </ul>
+            `;
+                    } catch (ex) {
+                        console.error(
+                            `INTERNAL_ERROR (UISearchResults): **EXCEPTION ENCOUNTED** while rendering component update. See details -> ${ex.message}`
+                        );
+                        this.renderErrorState();
+                    }
+                }
+
+                renderEmptyState() {
+                    this.innerHTML = `
+            <div class="empty-state">
+                <ion-text color="medium">
+                <p style="text-align:center; margin-top: 40px;">
+                    Nothing to see here. Start a search to see results.
+                </p>
+                </ion-text>
+            </div>
+            `;
+                }
+
+                renderLoadingState() {
+                    this.innerHTML = `
+            <ion-list>
+                ${Array(5)
+                            .fill(0)
+                            .map(
+                                () => `
+                    <ion-item>
+                    <ion-label>
+                        <h3><ion-skeleton-text animated style="width: 70%"></ion-skeleton-text></h3>
+                        <p><ion-skeleton-text animated style="width: 40%"></ion-skeleton-text></p>
+                    </ion-label>
+                    </ion-item>
+                `
+                            )
+                            .join('')}
+            </ion-list>
+            `;
+                }
+
+                renderErrorState() {
+                    this.innerHTML = `
+            <p color="danger">
+                <p style="text-align:center; margin-top: 40px;">
+                Something went wrong. Try again later.
+                </p>
+            </p>
+            `;
+                }
+            }
+
+            class UISegmentedControl extends HTMLElement {
+                connectedCallback() {
+                    this.addEventListener('click', (e) => {
+                        const btn = e.target.closest('[data-value]');
+                        if (!btn) return;
+
+                        const value = btn.dataset.value;
+                        const direction = btn.dataset.direction || 'forward';
+
+                        const indicator = this.querySelector('.segment-indicator');
+                        const buttons = [...this.querySelectorAll('[data-value]')];
+                        const index = buttons.indexOf(btn);
+
+                        indicator.style.transform = `translateX(${index * 100}%)`;
+
+                        // toggle active button UI
+                        this.querySelectorAll('[data-value]').forEach(el =>
+                            el.classList.toggle('active', el === btn)
+                        );
+
+                        // 🔥 THIS is Option 3
+                        const targetId = this.getAttribute('for');
+                        const target = document.getElementById(targetId);
+
+                        this.dispatchEvent(
+                            new CustomEvent('mode_changed', {
+                                detail: {
+                                    value
+                                },
+                                bubbles: true
+                            })
+                        );
+
+                        if (target && typeof target.show === 'function') {
+                            target.show(value, direction);
+                        } else {
+                            console.warn(`ui-segment: target "${targetId}" not found or has no show()`);
+                        }
+                    });
+                }
+            }
+
+            class UISegmentView extends HTMLElement {
+                connectedCallback() {
+                    this.current = this.querySelector('[data-view].active');
+                }
+
+                /**
+                 *  @param {object} el
+                 */
+                reset(el) {
+                    el.classList.remove(
+                        'enter',
+                        'exit',
+                        'forward',
+                        'back',
+                        'active'
+                    );
+                }
+
+                /**
+                 * 
+                 */
+                show(target, direction = 'forward') {
+                    const next = this.querySelector(`[data-view="${target}"]`);
+                    if (!next || next === this.current) return;
+
+                    const current = this.current;
+
+                    this.reset(next);
+                    if (current) this.reset(current);
+
+                    next.classList.remove('hidden');
+                    next.classList.add('enter', direction);
+
+                    next.offsetWidth; // force layout
+
+                    next.classList.add('active');
+                    next.classList.remove('enter');
+
+                    if (current) {
+                        current.classList.add('exit', direction);
+
+                        current.addEventListener('transitionend', () => {
+                            current.classList.remove('active', 'exit', direction);
+                            current.classList.add('hidden');
+                        }, { once: true });
+                    }
+
+                    this.current = next;
+                }
+
+
+            }
+
+            customElements.define('ui-segment-view', UISegmentView);
+            customElements.define('ui-segmented-control', UISegmentedControl);
+            customElements.define('ui-search-results', UISearchResults);
+        </script>
+        <script type="module" src="./js/main.js"></script>
+</body>
+
+</html>

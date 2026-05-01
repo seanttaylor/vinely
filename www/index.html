@@ -158,10 +158,119 @@
 <body>
 
   <ion-app>
+    <ion-router use-hash="true">
+      <ion-route url="/" component="home-page"></ion-route>
+      <ion-route url="/wines/:id" component="wine-detail-page"></ion-route>
+    </ion-router>
+    <ion-router-outlet animated="true">
+    </ion-router-outlet>
 
+  </ion-app>
 
+  <script type="module">
 
-    <!--HEADER-->
+    class UISearchResults extends HTMLElement {
+      connectedCallback() {
+        this.renderEmptyState();
+
+        // optional: signal ready
+        setTimeout(() => {
+          document.dispatchEvent(
+            new CustomEvent('SEARCH_RESULTS_INITIALIZED')
+          );
+        }, 0);
+      }
+
+      /**
+       * @param {Result<Object[]>} data
+       */
+      onComponentUpdate(data) {
+        try {
+          console.log(data)
+          if (data.isError()) {
+            this.renderEmptyState();
+            return;
+          }
+
+          this.innerHTML = `
+                <ion-list>
+                ${data.getValue()
+              .map(
+                (item, index) => `
+                <ion-router-link href="/wines/${item.id}" router-direction="forward">
+                        <ion-item 
+                        button 
+                        detail="true" 
+                        class="search-item"
+                        style="animation-delay: ${index * 60}ms"
+                        
+                        >
+                        <ion-label>
+                            <h3>${item.name}</h3>
+                            <p>${item.producer_id}</p>
+                        </ion-label>
+                        </ion-item>
+                </ion-router-link>
+                    `
+              )
+              .join('')}
+                </ion-list>
+            `;
+        } catch (ex) {
+          console.error(
+            `INTERNAL_ERROR (UISearchResults): **EXCEPTION ENCOUNTED** while rendering component update. See details -> ${ex.message}`
+          );
+          this.renderErrorState();
+        }
+      }
+
+      renderEmptyState() {
+        this.innerHTML = `
+            <div class="empty-state">
+                <ion-text color="medium">
+                <p style="text-align:center; margin-top: 40px;">
+                    Nothing to see here. Start a search to see results.
+                </p>
+                </ion-text>
+            </div>
+            `;
+      }
+
+      renderLoadingState() {
+        this.innerHTML = `
+            <ion-list>
+                ${Array(5)
+            .fill(0)
+            .map(
+              () => `
+                    <ion-item>
+                    <ion-label>
+                        <h3><ion-skeleton-text animated style="width: 70%"></ion-skeleton-text></h3>
+                        <p><ion-skeleton-text animated style="width: 40%"></ion-skeleton-text></p>
+                    </ion-label>
+                    </ion-item>
+                `
+            )
+            .join('')}
+            </ion-list>
+            `;
+      }
+
+      renderErrorState() {
+        this.innerHTML = `
+            <ion-text color="danger">
+                <p style="text-align:center; margin-top: 40px;">
+                Something went wrong. Try again later.
+                </p>
+            </ion-text>
+            `;
+      }
+    }
+    class HomePage extends HTMLElement {
+      connectedCallback() {
+        this.innerHTML = `
+      <ion-page>
+       <!--HEADER-->
     <ion-header>
 
       <ion-toolbar>
@@ -203,8 +312,6 @@
       </ion-content>
     </ion-menu>
 
-    <ion-tabs>
-      <ion-tab tab="home">
         <div class="ion-page" id="home-page">
           <ion-header>
             <ion-toolbar>
@@ -226,53 +333,13 @@
           </ion-segment-view>
 
           <ion-content class="ion-padding" id="main-content">
-
-            <ui-search-results></ui-search-results>
+            <ui-search-results></ui-search-results> 
           </ion-content>
-        </div>
-      </ion-tab>
-      <ion-tab tab="radio">
-        <div id="radio-page">
-          <ion-header>
-            <ion-toolbar>
-              <ion-title>Trends</ion-title>
-            </ion-toolbar>
-          </ion-header>
-          <ion-content>
-            <div class="example-content">Trends content</div>
-          </ion-content>
-        </div>
-      </ion-tab>
-
-      <!--<ion-tab-bar slot="bottom">
-        <ion-tab-button tab="search">
-          <ion-icon name="search"></ion-icon>
-          Search
-        </ion-tab-button>
-      </ion-tab-bar>-->
-    </ion-tabs>
-
-    <!--<ion-footer>
-        <ion-toolbar>
-          <ion-title>Footer</ion-title>
-        </ion-toolbar>
-      </ion-footer>-->
-    <!--<ion-nav></ion-nav>-->
-  </ion-app>
-
-  <script type="module">
-    class SearchPage extends HTMLElement {
-      connectedCallback() {
-        this.innerHTML = `
-      <ion-page>
-        <ion-content>
-          <h1>Search Page</h1>
-        </ion-content>
+        </div>    
       </ion-page>
     `;
       }
     }
-    customElements.define('search-page', SearchPage);
 
 
     class WineDetailPage extends HTMLElement {
@@ -286,6 +353,11 @@
     `;
       }
     }
+
+
+
+    customElements.define('ui-search-results', UISearchResults);
+    customElements.define('home-page', HomePage);
     customElements.define('wine-detail-page', WineDetailPage);
 
   </script>
