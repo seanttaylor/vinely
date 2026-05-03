@@ -147,6 +147,17 @@ export class Result {
   }
 
   /**
+   * Returns the contained value if the `Result` is `ok`, otherwise returns the provided default.
+   * Useful for safely unwrapping a `Result` at the boundary without throwing _or_ pattern matching.
+   * @template T
+   * @param {T} defaultValue - The value to return if the Result is an error.
+   * @returns {TValue|T}
+   */
+  getOrElse(defaultValue) {
+    return this.isOk() && this.value ? this.value : defaultValue;
+  }
+
+  /**
    * @returns {TValue|null}
    */
   getValue() {
